@@ -1,0 +1,96 @@
+package com.portfolio.livecoding.controller;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import com.portfolio.livecoding.dto.SubmissaoResponseDTO;
+import com.portfolio.livecoding.enums.StatusSubmissao;
+import com.portfolio.livecoding.exception.RecursoNaoEncontradoException;
+import com.portfolio.livecoding.service.SubmissaoService;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+
+@WebMvcTest(SubmissaoController.class)
+class SubmissaoControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
+    private SubmissaoService submissaoService;
+
+    private static final String CODIGO_VALIDO =
+            "@GetMapping public List<Produto> listar() { return repo.findAll(); }";
+
+    @Test
+    @DisplayName("POST /api/submissoes retorna 201 com o feedback da correcao")
+    void criar() throws Exception {
+        when(submissaoService.registrar(any(), eq(1L)))
+                .thenReturn(new SubmissaoResponseDTO(5L, StatusSubmissao.APROVADO,
+                        "Todos os testes simulados passaram. Bom trabalho!"));
+
+        String body = "{\"desafioId\": 1, \"codigoEnviado\": \"" + CODIGO_VALIDO + "\"}";
+
+        mockMvc.perform(post("/api/submissoes")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isCreated())
+                .andExpect(header().string("Location", "/api/submissoes/5"))
+                .andExpect(jsonPath("$.submissaoId").value(5))
+                .andExpect(jsonPath("$.status").value("APROVADO"));
+    }
+
+    @Test
+    @DisplayName("POST /api/submissoes usa o header X-Usuario-Id quando enviado")
+    void criarComUsuarioNoHeader() throws Exception {
+        when(submissaoService.registrar(any(), eq(7L)))
+                .thenReturn(new SubmissaoResponseDTO(6L, StatusSubmissao.ERRO_TESTE, "Testes falharam."));
+
+        String body = "{\"desafioId\": 1, \"codigoEnviado\": \"" + CODIGO_VALIDO + "\"}";
+
+        mockMvc.perform(post("/api/submissoes")
+                        .header("X-Usuario-Id", "7")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value("ERRO_TESTE"));
+    }
+
+    @Test
+    @DisplayName("POST /api/submissoes sem codigoEnviado retorna 400 com os erros de validacao")
+    void criarSemCodigo() throws Exception {
+        String body = "{\"desafioId\": 1}";
+
+        mockMvc.perform(post("/api/submissoes")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.erros.codigoEnviado").exists());
+    }
+
+    @Test
+    @DisplayName("POST /api/submissoes com desafio inexistente retorna 404")
+    void criarDesafioInexistente() throws Exception {
+        when(submissaoService.registrar(any(), any()))
+                .thenThrow(new RecursoNaoEncontradoException("Desafio nao encontrado: id 999"));
+
+        String body = "{\"desafioId\": 999, \"codigoEnviado\": \"" + CODIGO_VALIDO + "\"}";
+
+        mockMvc.perform(post("/api/submissoes")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.mensagem").value("Desafio nao encontrado: id 999"));
+    }
+}
