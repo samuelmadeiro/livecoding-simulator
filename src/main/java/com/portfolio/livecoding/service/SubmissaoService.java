@@ -24,14 +24,14 @@ public class SubmissaoService {
     private final ValidadorCodigoService validadorCodigoService;
 
     @Transactional
-    public SubmissaoResponseDTO registrar(SubmissaoRequestDTO request, Long usuarioId) {
+    public SubmissaoResponseDTO registrar(SubmissaoRequestDTO request, String emailUsuario) {
         Desafio desafio = desafioRepository.findById(request.desafioId())
                 .orElseThrow(() -> new RecursoNaoEncontradoException(
                         "Desafio nao encontrado: id " + request.desafioId()));
 
-        Usuario usuario = usuarioRepository.findById(usuarioId)
+        Usuario usuario = usuarioRepository.findByEmail(emailUsuario)
                 .orElseThrow(() -> new RecursoNaoEncontradoException(
-                        "Usuario nao encontrado: id " + usuarioId));
+                        "Usuario nao encontrado: " + emailUsuario));
 
         ValidadorCodigoService.Resultado resultado =
                 validadorCodigoService.validar(request.codigoEnviado(), desafio);

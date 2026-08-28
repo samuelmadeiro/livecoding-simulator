@@ -4,6 +4,7 @@ import com.portfolio.livecoding.entity.Desafio;
 import com.portfolio.livecoding.entity.Tecnologia;
 import com.portfolio.livecoding.entity.Usuario;
 import com.portfolio.livecoding.enums.NivelVaga;
+import com.portfolio.livecoding.enums.Role;
 import com.portfolio.livecoding.enums.TipoDesafio;
 import com.portfolio.livecoding.repository.DesafioRepository;
 import com.portfolio.livecoding.repository.TecnologiaRepository;
@@ -11,6 +12,7 @@ import com.portfolio.livecoding.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 /**
@@ -22,9 +24,13 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class DataLoader implements CommandLineRunner {
 
+    /** Senha em claro do usuario demo, documentada no README para testes manuais. */
+    private static final String SENHA_DEMO = "demo12345";
+
     private final UsuarioRepository usuarioRepository;
     private final TecnologiaRepository tecnologiaRepository;
     private final DesafioRepository desafioRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public void run(String... args) {
@@ -35,7 +41,8 @@ public class DataLoader implements CommandLineRunner {
         Usuario demo = new Usuario();
         demo.setNome("Candidato Demo");
         demo.setEmail("demo@livecoding.dev");
-        demo.setSenha("senha-nao-criptografada-apenas-demo");
+        demo.setSenha(passwordEncoder.encode(SENHA_DEMO));
+        demo.setRole(Role.CANDIDATO);
         usuarioRepository.save(demo);
 
         Tecnologia java = novaTecnologia("Java");

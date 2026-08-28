@@ -2,6 +2,7 @@ package com.portfolio.livecoding.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -15,12 +16,16 @@ import com.portfolio.livecoding.service.SubmissaoService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(SubmissaoController.class)
+@AutoConfigureMockMvc(addFilters = false)
+@WithMockUser(username = "demo@livecoding.dev")
 class SubmissaoControllerTest {
 
     @Autowired
@@ -29,13 +34,15 @@ class SubmissaoControllerTest {
     @MockBean
     private SubmissaoService submissaoService;
 
+    static final String EMAIL = "demo@livecoding.dev";
+
     private static final String CODIGO_VALIDO =
             "@GetMapping public List<Produto> listar() { return repo.findAll(); }";
 
     @Test
     @DisplayName("POST /api/submissoes retorna 201 com o feedback da correcao")
     void criar() throws Exception {
-        when(submissaoService.registrar(any(), eq(1L)))
+        when(submissaoService.registrar(any(), eq(EMAIL)))
                 .thenReturn(new SubmissaoResponseDTO(5L, StatusSubmissao.APROVADO,
                         "Todos os testes simulados passaram. Bom trabalho!"));
 
@@ -51,9 +58,9 @@ class SubmissaoControllerTest {
     }
 
     @Test
-    @DisplayName("POST /api/submissoes usa o header X-Usuario-Id quando enviado")
-    void criarComUsuarioNoHeader() throws Exception {
-        when(submissaoService.registrar(any(), eq(7L)))
+    @DisplayName("POST /api/submissoes atribui a submissao ao usuario autenticado, nao a um id do cliente")
+    void criarUsaUsuarioAutenticado() throws Exception {
+        when(submissaoService.registrar(any(), eq(EMAIL)))
                 .thenReturn(new SubmissaoResponseDTO(6L, StatusSubmissao.ERRO_TESTE, "Testes falharam."));
 
         String body = "{\"desafioId\": 1, \"codigoEnviado\": \"" + CODIGO_VALIDO + "\"}";
@@ -64,6 +71,9 @@ class SubmissaoControllerTest {
                         .content(body))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status").value("ERRO_TESTE"));
+
+        // O header legado e ignorado: o service so recebe o email do principal.
+        verify(submissaoService).registrar(any(), eq(EMAIL));
     }
 
     @Test
