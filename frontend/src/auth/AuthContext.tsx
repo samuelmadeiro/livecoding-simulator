@@ -1,13 +1,7 @@
-import {
-  createContext,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { api } from "../api/client";
 import type { Autenticacao } from "../api/types";
+import { AuthContext, type Sessao, type ValorDoContexto } from "./contexto";
 
 /*
  * O token fica em sessionStorage: sobrevive ao refresh da pagina e morre quando a aba fecha.
@@ -16,23 +10,6 @@ import type { Autenticacao } from "../api/types";
  * Authorization — hoje a API e stateless por header (SecurityConfig + JwtAuthenticationFilter).
  */
 const CHAVE = "livecoding.sessao";
-
-export interface Sessao {
-  token: string;
-  nome: string;
-  email: string;
-  expiraEm: number;
-}
-
-interface ValorDoContexto {
-  sessao: Sessao | null;
-  autenticado: boolean;
-  entrar: (email: string, senha: string) => Promise<void>;
-  cadastrar: (nome: string, email: string, senha: string) => Promise<void>;
-  sair: () => void;
-}
-
-export const AuthContext = createContext<ValorDoContexto | null>(null);
 
 function ler(): Sessao | null {
   try {
