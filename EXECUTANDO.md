@@ -90,18 +90,35 @@ Resposta esperada:
 
 Se isso funcionou, o ambiente está completo: banco, seed, JWT e correção automática.
 
-## 5. Console do H2
+## 5. Subir o front-end
+
+A interface fica em `frontend/` (React + TypeScript + Tailwind). Com o back-end no ar, em outro
+terminal:
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+Abre em `http://localhost:5173` — origem ja liberada no CORS do back-end
+(`app.cors.allowed-origins`). Entre com o usuario demo e percorra o fluxo: filtrar o catalogo,
+abrir um desafio, escrever a solucao e enviar para correcao.
+
+Para apontar o front para outro back-end, defina `VITE_API_URL` antes do `npm run dev`.
+
+## 6. Console do H2
 
 `http://localhost:8080/h2-console` — JDBC URL `jdbc:h2:mem:livecoding`, usuário `sa`, senha vazia.
 A rota é liberada no `SecurityConfig`, com `frameOptions sameOrigin` para o console renderizar.
 
-## 6. Testes automatizados
+## 7. Testes automatizados
 
 ```powershell
 .\mvnw.cmd test
 ```
 
-## 7. Perfil `prod` (PostgreSQL)
+## 8. Perfil `prod` (PostgreSQL)
 
 Exige um PostgreSQL rodando e a variável `JWT_SECRET` — `application-prod.properties` não tem
 default e a aplicação não sobe sem ela. O `ddl-auto` é `validate`, então o schema precisa existir
@@ -115,7 +132,7 @@ $env:JWT_SECRET = "<chave base64 de 256 bits>"
 As aspas em volta do `-D...` são necessárias no PowerShell. Banco configurável por `DB_URL`,
 `DB_USER` e `DB_PASSWORD`.
 
-## 8. Problemas comuns
+## 9. Problemas comuns
 
 | Sintoma | Causa / solução |
 |---|---|

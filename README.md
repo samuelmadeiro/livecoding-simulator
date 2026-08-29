@@ -15,6 +15,7 @@ Projeto de portfólio focado em vagas de Estágio / Júnior back-end.
 - Lombok
 - JUnit 5 + Mockito + MockMvc
 - Maven Wrapper
+- Front-end em React 19 + TypeScript + Tailwind v4 (pasta `frontend/`)
 
 ## Como rodar
 
@@ -46,6 +47,18 @@ Rodar contra PostgreSQL:
 ```
 
 Configurável por variáveis de ambiente `DB_URL`, `DB_USER`, `DB_PASSWORD`.
+
+## Front-end
+
+A pasta [`frontend/`](frontend/) tem a interface que consome esta API: catalogo filtravel, editor
+de codigo e correcao na tela. Com o back-end no ar:
+
+```bash
+cd frontend && npm install && npm run dev
+```
+
+Sobe em `http://localhost:5173`, origem liberada por `app.cors.allowed-origins`. As decisoes de
+design e as limitacoes conhecidas estao no [README do front](frontend/README.md).
 
 ## Endpoints
 
