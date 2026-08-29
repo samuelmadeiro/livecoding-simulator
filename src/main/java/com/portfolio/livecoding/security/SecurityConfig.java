@@ -1,7 +1,9 @@
 package com.portfolio.livecoding.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -14,6 +16,9 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
 @EnableWebSecurity
@@ -23,6 +28,10 @@ public class SecurityConfig {
     private final JwtService jwtService;
     private final UsuarioDetailsService usuarioDetailsService;
     private final ObjectMapper objectMapper;
+
+    /** Origens do frontend. Em desenvolvimento, o Vite sobe em 5173. */
+    @Value("${app.cors.allowed-origins}")
+    private List<String> origensPermitidas;
 
     @Bean
     public JwtAuthenticationFilter jwtAuthenticationFilter() {
@@ -37,6 +46,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 // API stateless com JWT: nao ha sessao nem formulario, entao CSRF nao se aplica.
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -51,6 +61,23 @@ public class SecurityConfig {
                 .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    /**
+     * O token viaja no header Authorization, nao em cookie: por isso allowCredentials fica
+     * desligado e a origem e uma lista fechada, nunca "*" com credenciais.
+     */
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuracao = new CorsConfiguration();
+        configuracao.setAllowedOrigins(origensPermitidas);
+        configuracao.setAllowedMethods(List.of("GET", "POST", "OPTIONS"));
+        configuracao.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        configuracao.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource fonte = new UrlBasedCorsConfigurationSource();
+        fonte.registerCorsConfiguration("/api/**", configuracao);
+        return fonte;
     }
 
     @Bean

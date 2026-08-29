@@ -1,36 +1,21 @@
-# Maven
+# Build
 target/
-!.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
+*.class
 
-# IntelliJ IDEA
+# IDE
 .idea/
-*.iws
 *.iml
-*.ipr
-
-# Eclipse
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
-
-# NetBeans
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-build/
-
-# VS Code
 .vscode/
 
-# Logs e SO
-*.log
-.DS_Store
+# Sistema
 Thumbs.db
+.DS_Store
+
+# Front-end
+frontend/node_modules/
+frontend/dist/
+frontend/*.tsbuildinfo
+frontend/.vite/
+
+# Ferramentas locais
+.claude/
