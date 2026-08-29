@@ -18,6 +18,9 @@ Projeto de portfólio focado em vagas de Estágio / Júnior back-end.
 
 ## Como rodar
 
+Passo a passo completo para Windows (pré-requisitos, PowerShell, troubleshooting):
+[EXECUTANDO.md](EXECUTANDO.md).
+
 ```bash
 ./mvnw spring-boot:run
 ```
