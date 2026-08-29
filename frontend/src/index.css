@@ -1,0 +1,142 @@
+@import "tailwindcss";
+@import "./design-tokens.css";
+
+/* As familias vem do Google Fonts, carregadas em index.html com preconnect. */
+
+/*
+ * Ponte entre os tokens e os utilitarios do Tailwind: todo utilitario usado nos componentes
+ * resolve para uma variavel declarada em design-tokens.css. Nao existe valor arbitrario
+ * (text-[13px], bg-[#4A90D9]) em componente nenhum — se faltar, o token entra aqui primeiro.
+ */
+@theme {
+  --font-titulo: var(--fonte-titulo);
+  --font-corpo: var(--fonte-corpo);
+  --font-codigo: var(--fonte-codigo);
+
+  --text-xs: var(--texto-xs);
+  --text-sm: var(--texto-sm);
+  --text-base: var(--texto-base);
+  --text-md: var(--texto-md);
+  --text-lg: var(--texto-lg);
+  --text-xl: var(--texto-xl);
+
+  --spacing: var(--espaco-1);
+
+  --color-superficie: var(--superficie);
+  --color-elevada: var(--superficie-elevada);
+  --color-afundada: var(--superficie-afundada);
+  --color-borda: var(--borda);
+  --color-borda-forte: var(--borda-forte);
+
+  --color-tinta: var(--tinta-forte);
+  --color-tinta-media: var(--tinta-media);
+  --color-tinta-fraca: var(--tinta-fraca);
+  --color-tinta-invertida: var(--tinta-invertida);
+
+  --color-acento: var(--acento);
+  --color-acento-escuro: var(--acento-escuro);
+  --color-acento-suave: var(--acento-suave);
+
+  --color-ok: var(--ok);
+  --color-ok-suave: var(--ok-suave);
+  --color-alerta: var(--alerta);
+  --color-alerta-suave: var(--alerta-suave);
+  --color-erro: var(--erro);
+  --color-erro-suave: var(--erro-suave);
+
+  --color-foco: var(--foco);
+  --color-desabilitado: var(--desabilitado-fundo);
+  --color-desabilitado-tinta: var(--desabilitado-tinta);
+
+  --radius-padrao: var(--raio);
+}
+
+@layer base {
+  html {
+    background-color: var(--superficie);
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--superficie);
+    color: var(--tinta-forte);
+    font-family: var(--fonte-corpo);
+    font-size: var(--texto-base);
+    line-height: var(--altura-corpo);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--fonte-titulo);
+    line-height: var(--altura-apertada);
+    font-weight: var(--peso-forte);
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+
+  code,
+  pre,
+  textarea {
+    font-family: var(--fonte-codigo);
+  }
+
+  /* Indicador de foco proprio, nunca removido. O anel duplo garante 3:1 tanto sobre a superficie
+   * clara quanto sobre o botao de acento. */
+  :focus-visible {
+    outline: none;
+    box-shadow: var(--sombra-foco);
+    border-radius: var(--raio);
+  }
+
+  /* Alvo de toque minimo de 24x24 CSS px (WCAG 2.5.8). */
+  button,
+  a[href],
+  input,
+  select,
+  textarea {
+    min-height: 24px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer utilities {
+  /* Pula a navegacao: primeiro item do Tab, visivel so quando focado. */
+  .pular-para-conteudo {
+    position: absolute;
+    left: -9999px;
+    top: var(--espaco-2);
+    z-index: 50;
+    background-color: var(--superficie-elevada);
+    color: var(--tinta-forte);
+    padding: var(--espaco-2) var(--espaco-4);
+    border: var(--borda-grossa) solid var(--tinta-forte);
+    border-radius: var(--raio);
+  }
+
+  .pular-para-conteudo:focus {
+    left: var(--espaco-4);
+  }
+
+  /* Visivel para leitor de tela, fora da tela para quem enxerga. */
+  .apenas-leitor-de-tela {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+}

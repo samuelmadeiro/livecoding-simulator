@@ -1,0 +1,105 @@
+/*
+ * Tokens do LiveCoding Simulator.
+ *
+ * O produto simula a pressao de uma entrevista tecnica cronometrada: precisa parecer ferramenta
+ * de trabalho, nao pagina de captura. Por isso neutros quentes (grafite e areia) no lugar do
+ * cinza-azulado de dashboard, um unico acento em terracota reservado para acao e estado, e
+ * tipografia de engenharia — Space Grotesk nos titulos, IBM Plex Sans no texto, IBM Plex Mono
+ * no codigo, porque enunciado e solucao precisam se distinguir antes da leitura.
+ */
+
+:root {
+  /* ---------- Tipografia ---------- */
+  --fonte-titulo: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  --fonte-corpo: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --fonte-codigo: "IBM Plex Mono", "Cascadia Mono", ui-monospace, monospace;
+
+  /* Escala de texto: 6 degraus, razao 1.25 a partir de 16px. */
+  --texto-xs: 0.75rem; /* 12px — metadado, rotulo de campo */
+  --texto-sm: 0.875rem; /* 14px — apoio, legenda */
+  --texto-base: 1rem; /* 16px — corpo */
+  --texto-md: 1.25rem; /* 20px — titulo de card */
+  --texto-lg: 1.75rem; /* 28px — titulo de secao */
+  --texto-xl: 2.5rem; /* 40px — titulo de pagina */
+
+  --peso-normal: 400;
+  --peso-medio: 500;
+  --peso-forte: 600;
+
+  --altura-apertada: 1.2; /* titulos */
+  --altura-corpo: 1.6; /* texto corrido */
+
+  /* Largura de linha entre 45 e 80 caracteres em texto corrido. */
+  --medida-texto: 68ch;
+
+  /* ---------- Espacamento: base 4px ---------- */
+  --espaco-1: 0.25rem;
+  --espaco-2: 0.5rem;
+  --espaco-3: 0.75rem;
+  --espaco-4: 1rem;
+  --espaco-6: 1.5rem;
+  --espaco-8: 2rem;
+  --espaco-12: 3rem;
+  --espaco-16: 4rem;
+
+  /* ---------- Paleta ----------
+   * Contraste conferido sobre --superficie (#F5F1EA) e sobre --grafite-900 (#1F1D1A):
+   *   tinta-forte  sobre superficie ... 14.8:1
+   *   tinta-media  sobre superficie ..... 7.1:1
+   *   tinta-fraca  sobre superficie ..... 4.6:1  (minimo para texto normal)
+   *   acento       sobre superficie ..... 4.7:1
+   *   superficie   sobre acento ......... 4.7:1  (botao primario)
+   */
+  --grafite-900: #1f1d1a;
+  --grafite-700: #3d3934;
+  --grafite-500: #6b645b;
+  --areia-200: #e6dfd3;
+  --areia-100: #efe9df;
+  --areia-50: #f5f1ea;
+  --branco: #fffdf9;
+
+  --superficie: var(--areia-50);
+  --superficie-elevada: var(--branco);
+  --superficie-afundada: var(--areia-100);
+  --borda: var(--areia-200);
+  --borda-forte: var(--grafite-500);
+
+  --tinta-forte: var(--grafite-900);
+  --tinta-media: var(--grafite-700);
+  --tinta-fraca: var(--grafite-500);
+  --tinta-invertida: var(--branco);
+
+  --acento: #a8442a; /* terracota */
+  --acento-escuro: #8a3722;
+  --acento-suave: #f7e8e2;
+
+  /* Estados. Cor nunca viaja sozinha: sempre com rotulo e icone. */
+  --ok: #4a5d23; /* oliva  — 6.9:1 sobre superficie */
+  --ok-suave: #eaeedd;
+  --alerta: #8a5a00; /* ambar — 5.2:1 sobre superficie */
+  --alerta-suave: #f7ecd9;
+  --erro: #9c2b1e; /* terracota escura — 6.4:1 sobre superficie */
+  --erro-suave: #f8e5e1;
+
+  --foco: #1a4d6b; /* azul-petroleo: 8:1 sobre superficie, 8.9:1 sobre superficie elevada */
+  --desabilitado-fundo: var(--areia-200);
+  --desabilitado-tinta: #5f594f; /* 5.2:1 sobre o fundo desabilitado — a WCAG isenta controle
+                                    desabilitado, mas ilegivel nao ajuda ninguem a entender por
+                                    que o botao nao responde */
+
+  /* ---------- Forma ----------
+   * Um unico raio no projeto inteiro. 3px nao e o default do Tailwind (4px/8px): a quina quase
+   * viva combina com editor de codigo e evita o arredondamento generico de card.
+   */
+  --raio: 3px;
+
+  --borda-fina: 1px;
+  --borda-grossa: 2px;
+
+  /* Elevacao por borda e contraste de superficie, nao por sombra difusa. */
+
+  /* Anel de foco duplo: 2px da superficie clara separando o anel do controle, depois 3px do azul.
+   * O anel simples falha sobre o botao terracota (1.5:1); com o offset claro no meio, o indicador
+   * passa a contrastar com a superficie (8:1) e o offset contrasta com o acento (5.9:1). */
+  --sombra-foco: 0 0 0 2px var(--superficie-elevada), 0 0 0 5px var(--foco);
+}
