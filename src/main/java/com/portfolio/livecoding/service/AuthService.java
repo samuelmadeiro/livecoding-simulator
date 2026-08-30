@@ -10,6 +10,7 @@ import com.portfolio.livecoding.exception.RecursoNaoEncontradoException;
 import com.portfolio.livecoding.repository.UsuarioRepository;
 import com.portfolio.livecoding.security.JwtService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -26,7 +27,7 @@ public class AuthService {
     private final JwtService jwtService;
 
     @Transactional
-    public AuthResponseDTO registrar(RegistroRequestDTO request) {
+    public AuthResponseDTO registrar(@NonNull RegistroRequestDTO request) {
         usuarioRepository.findByEmail(request.email()).ifPresent(existente -> {
             throw new EmailJaCadastradoException("Email ja cadastrado: " + request.email());
         });

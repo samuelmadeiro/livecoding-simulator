@@ -11,7 +11,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -36,7 +35,6 @@ public class Desafio {
     @Column(nullable = false, length = 150)
     private String titulo;
 
-    @Lob
     @Column(nullable = false, columnDefinition = "TEXT")
     private String descricao;
 
@@ -51,7 +49,6 @@ public class Desafio {
     @Column(name = "tempo_limite_minutos", nullable = false)
     private Integer tempoLimiteMinutos;
 
-    @Lob
     @Column(name = "template_codigo", columnDefinition = "TEXT")
     private String templateCodigo;
 

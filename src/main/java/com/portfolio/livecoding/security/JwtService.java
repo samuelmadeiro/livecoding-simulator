@@ -7,7 +7,11 @@ import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import java.util.Date;
 import javax.crypto.SecretKey;
+
+import lombok.Getter;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 
 /**
@@ -18,11 +22,12 @@ import org.springframework.stereotype.Service;
 public class JwtService {
 
     private final SecretKey chave;
+    @Getter
     private final long expiracaoMs;
 
     public JwtService(@Value("${app.jwt.secret}") String secret,
                       @Value("${app.jwt.expiracao-ms}") long expiracaoMs) {
-        this.chave = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));
+        this.chave = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));//
         this.expiracaoMs = expiracaoMs;
     }
 
@@ -52,11 +57,7 @@ public class JwtService {
         return extrairClaims(token) != null;
     }
 
-    public long getExpiracaoMs() {
-        return expiracaoMs;
-    }
-
-    private Claims extrairClaims(String token) {
+    private @Nullable Claims extrairClaims(String token) {
         try {
             return Jwts.parser()
                     .verifyWith(chave)
@@ -64,7 +65,6 @@ public class JwtService {
                     .parseSignedClaims(token)
                     .getPayload();
         } catch (JwtException | IllegalArgumentException ex) {
-            // Assinatura invalida, token expirado ou malformado: tratado como nao autenticado.
             return null;
         }
     }

@@ -30,7 +30,7 @@ public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
         Map<String, Object> corpo = new LinkedHashMap<>();
         corpo.put("timestamp", LocalDateTime.now().toString());
         corpo.put("status", HttpStatus.UNAUTHORIZED.value());
-        corpo.put("mensagem", "Autenticacao necessaria. Envie o header Authorization: Bearer <token>.");
+        corpo.put("mensagem", "Autenticação necessaria. Envie o header Authorization: Bearer <token>.");
 
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
