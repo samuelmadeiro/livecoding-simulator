@@ -58,6 +58,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/desafios", "/api/desafios/**").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
+                        // Painel do admin barrado por rota, e nao por if dentro do controller:
+                        // endpoint novo sob /api/admin ja nasce protegido.
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin))
                 .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);

@@ -84,6 +84,26 @@ class SecurityIntegrationTest {
     }
 
     @Test
+    @DisplayName("painel do admin: 401 sem token, 403 para candidato, 200 para admin")
+    void painelDoAdminSoAbreParaAdmin() throws Exception {
+        mockMvc.perform(get("/api/admin/metricas"))
+                .andExpect(status().isUnauthorized());
+
+        String tokenCandidato = login("demo@livecoding.dev", "demo12345");
+        mockMvc.perform(get("/api/admin/metricas")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenCandidato))
+                .andExpect(status().isForbidden());
+
+        String tokenAdmin = login("admin@livecoding.dev", "admin12345");
+        mockMvc.perform(get("/api/admin/metricas")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenAdmin))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resumo.desafios").isNumber())
+                .andExpect(jsonPath("$.usuarios").isArray())
+                .andExpect(jsonPath("$.desafios").isArray());
+    }
+
+    @Test
     @DisplayName("cronometro do desafio exige token")
     void cronometroExigeToken() throws Exception {
         mockMvc.perform(post("/api/desafios/" + idDoCrudDeProdutos() + "/iniciar"))
