@@ -34,6 +34,7 @@ const APARENCIA: Record<
 
 export function ResultadoSubmissao({ submissao }: { submissao: Submissao }) {
   const { icone: Icone, caixa, tinta } = APARENCIA[submissao.status];
+  const criterios = submissao.criterios ?? [];
 
   return (
     <section
@@ -48,6 +49,44 @@ export function ResultadoSubmissao({ submissao }: { submissao: Submissao }) {
       <p className="max-w-[var(--medida-texto)] text-tinta-media">
         {submissao.mensagemFeedback}
       </p>
+
+      {submissao.pontuacao !== null && (
+        <p className="text-tinta-media">
+          Pontuação: <strong className={tinta}>{submissao.pontuacao}</strong> de 100
+        </p>
+      )}
+
+      {criterios.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <h4 className="text-sm text-tinta-media">O que foi avaliado</h4>
+          {/*
+           * Cada item repete o estado em icone e em texto alternativo, porque a lista mistura
+           * verde e vermelho e a cor sozinha nao pode ser a informacao.
+           */}
+          <ul className="flex flex-col gap-2">
+            {criterios.map((criterio) => {
+              const IconeItem = criterio.atendido ? CircleCheck : CircleX;
+              const tintaItem = criterio.atendido ? "text-ok" : "text-erro";
+
+              return (
+                <li key={criterio.descricao} className="flex items-start gap-2 text-tinta-media">
+                  <IconeItem
+                    aria-hidden="true"
+                    size={18}
+                    className={`mt-1 shrink-0 ${tintaItem}`}
+                  />
+                  <span>
+                    <span className="sr-only">
+                      {criterio.atendido ? "Atendido: " : "Não atendido: "}
+                    </span>
+                    {criterio.descricao}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
 
       <p className="text-xs text-tinta-fraca">Submissão #{submissao.submissaoId}</p>
     </section>

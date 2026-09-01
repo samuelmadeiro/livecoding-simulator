@@ -35,10 +35,19 @@ export interface Autenticacao {
   role: Role;
 }
 
+/** Um item do feedback: o que era esperado e se a submissao atendeu. */
+export interface CriterioResultado {
+  descricao: string;
+  atendido: boolean;
+}
+
 export interface Submissao {
   submissaoId: number;
   status: StatusSubmissao;
   mensagemFeedback: string;
+  /** Nota de 0 a 100. Nula em submissoes antigas, gravadas antes da correcao por criterios. */
+  pontuacao: number | null;
+  criterios: CriterioResultado[];
 }
 
 export interface FiltroDesafios {
