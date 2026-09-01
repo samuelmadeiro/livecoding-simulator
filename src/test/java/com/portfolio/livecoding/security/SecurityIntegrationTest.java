@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.portfolio.livecoding.entity.Submissao;
+import com.portfolio.livecoding.repository.DesafioRepository;
 import com.portfolio.livecoding.repository.SubmissaoRepository;
 import com.portfolio.livecoding.repository.UsuarioRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -22,14 +23,17 @@ import org.springframework.test.web.servlet.MockMvc;
 
 /**
  * Cadeia de seguranca de ponta a ponta, com os filtros reais ligados.
- * O DataLoader ja populou o H2 com o usuario demo e os desafios.
+ * O Flyway ja populou o catalogo e o DataLoader criou o usuario demo.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
 class SecurityIntegrationTest {
 
+    // Precisa atender os criterios que a V3 cadastra para o CRUD de Produtos: rota GET, retorno,
+    // mencao a produtos, acesso por repositorio e a classe declarada como controller.
     private static final String CODIGO =
-            "@GetMapping public List<Produto> listar() { return repo.findAll(); }";
+            "@RestController class ProdutoController { @GetMapping public List<Produto> "
+                    + "listarProdutos() { return repository.findAll(); } }";
 
     @Autowired
     private MockMvc mockMvc;
@@ -42,6 +46,9 @@ class SecurityIntegrationTest {
 
     @Autowired
     private UsuarioRepository usuarioRepository;
+
+    @Autowired
+    private DesafioRepository desafioRepository;
 
     @Test
     @DisplayName("catalogo de desafios continua publico")
@@ -113,7 +120,7 @@ class SecurityIntegrationTest {
         String respostaSubmissao = mockMvc.perform(post("/api/submissoes")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(corpoSubmissao()))
+                        .content(corpoSubmissao(idDoCrudDeProdutos())))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status").value("APROVADO"))
                 .andReturn().getResponse().getContentAsString();
@@ -139,6 +146,19 @@ class SecurityIntegrationTest {
     }
 
     private String corpoSubmissao() {
-        return "{\"desafioId\": 1, \"codigoEnviado\": \"" + CODIGO + "\"}";
+        return corpoSubmissao(1L);
+    }
+
+    private String corpoSubmissao(long desafioId) {
+        return "{\"desafioId\": " + desafioId + ", \"codigoEnviado\": \"" + CODIGO + "\"}";
+    }
+
+    /** O id vem do banco: a ordem do seed pode mudar quando novas migrations forem adicionadas. */
+    private long idDoCrudDeProdutos() {
+        return desafioRepository.findAll().stream()
+                .filter(d -> "CRUD de Produtos".equals(d.getTitulo()))
+                .findFirst()
+                .orElseThrow()
+                .getId();
     }
 }

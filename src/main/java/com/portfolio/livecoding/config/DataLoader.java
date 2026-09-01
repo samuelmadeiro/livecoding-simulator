@@ -1,13 +1,7 @@
 package com.portfolio.livecoding.config;
 
-import com.portfolio.livecoding.entity.Desafio;
-import com.portfolio.livecoding.entity.Tecnologia;
 import com.portfolio.livecoding.entity.Usuario;
-import com.portfolio.livecoding.enums.NivelVaga;
 import com.portfolio.livecoding.enums.Role;
-import com.portfolio.livecoding.enums.TipoDesafio;
-import com.portfolio.livecoding.repository.DesafioRepository;
-import com.portfolio.livecoding.repository.TecnologiaRepository;
 import com.portfolio.livecoding.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
@@ -16,8 +10,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 /**
- * Popula o H2 com dados de exemplo para testar a API rapidamente.
- * Ativo apenas fora do perfil prod.
+ * Cria o usuario de testes. O catalogo de desafios nao vive mais aqui: veio para as migrations
+ * (db/migration/V3__seed_catalogo.sql), que rodam em qualquer banco e deixam os dados gravados.
+ *
+ * <p>O usuario demo continua em Java, e nao no SQL, por dois motivos: a senha precisa passar pelo
+ * PasswordEncoder da aplicacao, e o perfil prod nao pode ganhar uma conta de teste.
  */
 @Component
 @Profile("!prod")
@@ -27,61 +24,24 @@ public class DataLoader implements CommandLineRunner {
     /** Senha em claro do usuario demo, documentada no README para testes manuais. */
     private static final String SENHA_DEMO = "demo12345";
 
+    private static final String EMAIL_DEMO = "demo@livecoding.dev";
+
     private final UsuarioRepository usuarioRepository;
-    private final TecnologiaRepository tecnologiaRepository;
-    private final DesafioRepository desafioRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
     public void run(String... args) {
-        if (usuarioRepository.count() > 0) {
+        // Guard por e-mail, e nao por count(): com o catalogo vindo da migration, contar linhas de
+        // outra tabela nao diz nada sobre a existencia deste usuario.
+        if (usuarioRepository.findByEmail(EMAIL_DEMO).isPresent()) {
             return;
         }
 
         Usuario demo = new Usuario();
         demo.setNome("Candidato Demo");
-        demo.setEmail("demo@livecoding.dev");
+        demo.setEmail(EMAIL_DEMO);
         demo.setSenha(passwordEncoder.encode(SENHA_DEMO));
         demo.setRole(Role.CANDIDATO);
         usuarioRepository.save(demo);
-
-        Tecnologia java = novaTecnologia("Java");
-        Tecnologia node = novaTecnologia("Node");
-        novaTecnologia("Python");
-
-        Desafio api = new Desafio();
-        api.setTitulo("CRUD de Produtos");
-        api.setDescricao("Implemente o endpoint GET /produtos retornando a lista de produtos.");
-        api.setNivel(NivelVaga.JUNIOR);
-        api.setTipo(TipoDesafio.API_REST);
-        api.setTempoLimiteMinutos(45);
-        api.setTemplateCodigo("""
-                @RestController
-                public class ProdutoController {
-                    // TODO: implementar
-                }
-                """);
-        api.setTecnologia(java);
-        desafioRepository.save(api);
-
-        Desafio algoritmo = new Desafio();
-        algoritmo.setTitulo("Soma de Pares");
-        algoritmo.setDescricao("Dado um array de inteiros, retorne a soma dos numeros pares.");
-        algoritmo.setNivel(NivelVaga.ESTAGIO);
-        algoritmo.setTipo(TipoDesafio.ALGORITMO_EASY);
-        algoritmo.setTempoLimiteMinutos(20);
-        algoritmo.setTemplateCodigo("""
-                function somaPares(numeros) {
-                    // TODO: implementar
-                }
-                """);
-        algoritmo.setTecnologia(node);
-        desafioRepository.save(algoritmo);
-    }
-
-    private Tecnologia novaTecnologia(String nome) {
-        Tecnologia tecnologia = new Tecnologia();
-        tecnologia.setNome(nome);
-        return tecnologiaRepository.save(tecnologia);
     }
 }
