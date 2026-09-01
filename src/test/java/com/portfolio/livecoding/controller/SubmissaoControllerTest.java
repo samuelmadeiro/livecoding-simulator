@@ -9,10 +9,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.portfolio.livecoding.dto.CriterioResultadoDTO;
 import com.portfolio.livecoding.dto.SubmissaoResponseDTO;
 import com.portfolio.livecoding.enums.StatusSubmissao;
 import com.portfolio.livecoding.exception.RecursoNaoEncontradoException;
 import com.portfolio.livecoding.service.SubmissaoService;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,7 +46,8 @@ class SubmissaoControllerTest {
     void criar() throws Exception {
         when(submissaoService.registrar(any(), eq(EMAIL)))
                 .thenReturn(new SubmissaoResponseDTO(5L, StatusSubmissao.APROVADO,
-                        "Todos os testes simulados passaram. Bom trabalho!"));
+                        "Todos os requisitos essenciais foram atendidos. Pontuacao: 100 de 100.",
+                        100, List.of(new CriterioResultadoDTO("Expoe um endpoint de leitura (GET)", true))));
 
         String body = "{\"desafioId\": 1, \"codigoEnviado\": \"" + CODIGO_VALIDO + "\"}";
 
@@ -54,14 +57,19 @@ class SubmissaoControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", "/api/submissoes/5"))
                 .andExpect(jsonPath("$.submissaoId").value(5))
-                .andExpect(jsonPath("$.status").value("APROVADO"));
+                .andExpect(jsonPath("$.status").value("APROVADO"))
+                .andExpect(jsonPath("$.pontuacao").value(100))
+                .andExpect(jsonPath("$.criterios[0].descricao")
+                        .value("Expoe um endpoint de leitura (GET)"))
+                .andExpect(jsonPath("$.criterios[0].atendido").value(true));
     }
 
     @Test
     @DisplayName("POST /api/submissoes atribui a submissao ao usuario autenticado, nao a um id do cliente")
     void criarUsaUsuarioAutenticado() throws Exception {
         when(submissaoService.registrar(any(), eq(EMAIL)))
-                .thenReturn(new SubmissaoResponseDTO(6L, StatusSubmissao.ERRO_TESTE, "Testes falharam."));
+                .thenReturn(new SubmissaoResponseDTO(6L, StatusSubmissao.ERRO_TESTE, "Testes falharam.",
+                        40, List.of(new CriterioResultadoDTO("Soma o valor dos pedidos", false))));
 
         String body = "{\"desafioId\": 1, \"codigoEnviado\": \"" + CODIGO_VALIDO + "\"}";
 

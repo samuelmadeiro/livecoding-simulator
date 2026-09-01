@@ -10,7 +10,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
@@ -34,7 +33,6 @@ public class Submissao {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Lob
     @Column(name = "codigo_enviado", nullable = false, columnDefinition = "TEXT")
     private String codigoEnviado;
 
@@ -44,6 +42,10 @@ public class Submissao {
 
     @Column(name = "data_hora", nullable = false)
     private LocalDateTime dataHora;
+
+    /** Nota de 0 a 100 dada pelo ValidadorCodigoService. Nula nas submissoes anteriores a V2. */
+    @Column
+    private Integer pontuacao;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "usuario_id", nullable = false)
