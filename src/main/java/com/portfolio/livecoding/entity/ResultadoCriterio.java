@@ -19,50 +19,45 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Um sinal avaliado na correcao de um desafio. Varios criterios por desafio substituem a
- * palavra-chave unica que decidia aprovado/reprovado antes.
+ * O que uma submissao atendeu, criterio a criterio.
  *
- * <p>O campo {@code padrao} e uma regex e nunca deve ser exposto pela API: entregar a regex ao
- * candidato e entregar a resposta. Por isso {@link Desafio} nao tem uma colecao mapeada para ca —
- * o DesafioResponseDTO serializa a entidade e o vazamento seria automatico.
+ * <p>Guardar so a nota final responde "passou?"; guardar linha a linha responde "onde as pessoas
+ * travam neste desafio?", que e a pergunta do painel do admin. A descricao, o tipo e o peso sao
+ * copiados do criterio no momento da correcao: se a regua do desafio mudar amanha, o historico
+ * continua contando o que foi cobrado hoje.
  */
 @Entity
-@Table(name = "criterios_avaliacao")
+@Table(name = "resultados_criterio")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(of = "id")
-public class CriterioAvaliacao {
+public class ResultadoCriterio {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "desafio_id", nullable = false)
-    private Desafio desafio;
+    @JoinColumn(name = "submissao_id", nullable = false)
+    private Submissao submissao;
 
-    /** Texto mostrado ao candidato no feedback. */
+    /** Nulo quando o criterio de origem foi apagado depois da correcao. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "criterio_id")
+    private CriterioAvaliacao criterio;
+
     @Column(nullable = false, length = 200)
     private String descricao;
-
-    /** Regex aplicada ao codigo enviado, sempre case-insensitive. */
-    @Column(nullable = false, columnDefinition = "TEXT")
-    private String padrao;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private TipoCriterio tipo;
 
-    /** Peso na nota. So conta para criterios PONTUAVEL. */
     @Column(nullable = false)
     private Integer peso;
 
-    /**
-     * O que o entrevistador simulado fala quando este criterio falha. Aponta o caminho sem
-     * entregar a solucao. Fica no banco pelo mesmo motivo do padrao: mudar a fala nao recompila.
-     */
-    @Column(length = 300)
-    private String dica;
+    @Column(nullable = false)
+    private boolean atendido;
 }

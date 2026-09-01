@@ -1,6 +1,7 @@
 package com.portfolio.livecoding.entity;
 
 import com.portfolio.livecoding.enums.StatusSubmissao;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -11,9 +12,12 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -47,6 +51,21 @@ public class Submissao {
     @Column
     private Integer pontuacao;
 
+    /**
+     * Percentual de precisao: quanto do peso total de criterios do desafio a submissao acertou,
+     * contando obrigatorios, pontuaveis e proibidos. Diferente de {@link #pontuacao}, que so olha
+     * os pontuaveis. Nula nas submissoes anteriores a V4.
+     */
+    @Column
+    private Integer precisao;
+
+    /**
+     * Tempo entre abrir o desafio e enviar a solucao. Vem da tentativa aberta no servidor, nunca
+     * de um campo do corpo da requisicao. Nulo quando nao houve tentativa registrada.
+     */
+    @Column(name = "duracao_segundos")
+    private Integer duracaoSegundos;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "usuario_id", nullable = false)
     private Usuario usuario;
@@ -54,6 +73,15 @@ public class Submissao {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "desafio_id", nullable = false)
     private Desafio desafio;
+
+    /** Detalhamento da correcao, criterio a criterio. E o que alimenta o painel do admin. */
+    @OneToMany(mappedBy = "submissao", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ResultadoCriterio> resultados = new ArrayList<>();
+
+    public void adicionarResultado(ResultadoCriterio resultado) {
+        resultado.setSubmissao(this);
+        resultados.add(resultado);
+    }
 
     @PrePersist
     public void prePersist() {
