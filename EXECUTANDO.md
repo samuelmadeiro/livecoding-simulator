@@ -39,16 +39,46 @@ O log de sucesso é `Started LivecodingSimulatorApplication in X seconds`. A API
 `http://localhost:8080`.
 
 Não há banco para instalar: o perfil padrão usa H2 em memória. Os dados são recriados a cada boot e
-somem quando a aplicação para (`Ctrl+C`).
+somem quando a aplicação para (`Ctrl+C`). Para um banco que sobrevive ao restart, veja a seção 8.
 
 ## 3. Dados de exemplo
 
-O `DataLoader` (ativo fora do perfil `prod`) popula o H2 com:
+O catálogo vem das migrations do Flyway (`src/main/resources/db/migration`), que rodam em todos os
+perfis — inclusive no H2, que sobe em `MODE=PostgreSQL` justamente para aceitar o mesmo SQL do
+banco de produção. Schema e conteúdo têm uma fonte de verdade só:
 
-- usuário demo `demo@livecoding.dev` / `demo12345` (role `CANDIDATO`)
-- tecnologias Java (`id 1`), Node (`id 2`), Python (`id 3`)
-- desafio `id 1` — "CRUD de Produtos" (`JUNIOR`, `API_REST`, Java)
-- desafio `id 2` — "Soma de Pares" (`ESTAGIO`, `ALGORITMO_EASY`, Node)
+- tecnologias Java, Node, Python e SQL
+- 14 desafios cobrindo os três níveis, os três tipos e as quatro tecnologias
+- os critérios de correção de cada desafio, na tabela `criterios_avaliacao`
+
+O `DataLoader` (ativo fora do perfil `prod`) só cria o usuário demo
+`demo@livecoding.dev` / `demo12345` (role `CANDIDATO`) — a senha precisa passar pelo
+`PasswordEncoder`, e produção não pode ganhar conta de teste.
+
+Os ids não são estáveis entre bancos: consulte por título, não por `id 1`.
+
+### Como a correção decide aprovado ou reprovado
+
+Cada desafio tem vários critérios gravados no banco, e não uma palavra-chave fixa por tipo. Cada
+critério é uma regex com um papel:
+
+| Tipo | Efeito |
+|---|---|
+| `OBRIGATORIO` | Se falhar, reprova sozinho, por melhor que seja o resto |
+| `PONTUAVEL` | Soma o `peso` para a nota de 0 a 100 |
+| `PROIBIDO` | Se casar, reprova (ex.: `TODO` deixado no código) |
+
+Aprova com **70** ou mais nos pontuáveis e nenhum obrigatório falhando. Comentários são removidos
+antes da análise, então `// return` não conta mais como implementação. A nota fica gravada em
+`submissoes.pontuacao` e a resposta da API detalha item a item o que passou e o que faltou.
+
+Para ajustar a régua de um desafio, edite a tabela — não o código:
+
+```sql
+SELECT c.id, c.tipo, c.peso, c.descricao
+FROM criterios_avaliacao c JOIN desafios d ON d.id = c.desafio_id
+WHERE d.titulo = 'CRUD de Produtos';
+```
 
 ## 4. Testando pelo PowerShell
 
@@ -118,11 +148,41 @@ A rota é liberada no `SecurityConfig`, com `frameOptions sameOrigin` para o con
 .\mvnw.cmd test
 ```
 
-## 8. Perfil `prod` (PostgreSQL)
+## 8. Perfil `pg` (PostgreSQL local, com dados de exemplo)
+
+Perfil de desenvolvimento que troca o H2 pelo PostgreSQL da máquina, mantendo o `DataLoader`
+ativo. As tabelas passam a existir em disco: sobrevivem ao restart e podem ser consultadas por
+`psql` com `\dt`, `SELECT` e `WHERE`.
+
+Pré-requisito: o banco `livecoding` precisa existir (o Flyway cria as tabelas, não o banco).
+
+```powershell
+& "C:\Program Files\PostgreSQL8in\createdb.exe" -U postgres -h 127.0.0.1 -p 8090 livecoding
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=pg"
+```
+
+Conexão padrão: `jdbc:postgresql://localhost:8090/livecoding`, usuário `postgres`, senha
+`postgres` — sobrescreva por `DB_URL`, `DB_USER` e `DB_PASSWORD`. A porta 8090 é a da instalação
+local; num PostgreSQL padrão troque para 5432 via `DB_URL`.
+
+Consultando depois de subir:
+
+```powershell
+& "C:\Program Files\PostgreSQL8in\psql.exe" -U postgres -h 127.0.0.1 -p 8090 -d livecoding
+```
+
+```sql
+\dt
+SELECT id, nome, email, role FROM usuarios;
+SELECT titulo, nivel FROM desafios WHERE nivel = 'JUNIOR';
+```
+
+## 9. Perfil `prod` (PostgreSQL)
 
 Exige um PostgreSQL rodando e a variável `JWT_SECRET` — `application-prod.properties` não tem
-default e a aplicação não sobe sem ela. O `ddl-auto` é `validate`, então o schema precisa existir
-antes.
+default e a aplicação não sobe sem ela. O schema é criado pelo Flyway no boot
+(`src/main/resources/db/migration`); o `ddl-auto` é `validate` e apenas confere se o resultado bate
+com as entidades. Basta o banco existir e estar vazio.
 
 ```powershell
 $env:JWT_SECRET = "<chave base64 de 256 bits>"
@@ -132,7 +192,7 @@ $env:JWT_SECRET = "<chave base64 de 256 bits>"
 As aspas em volta do `-D...` são necessárias no PowerShell. Banco configurável por `DB_URL`,
 `DB_USER` e `DB_PASSWORD`.
 
-## 9. Problemas comuns
+## 10. Problemas comuns
 
 | Sintoma | Causa / solução |
 |---|---|

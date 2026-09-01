@@ -11,7 +11,7 @@ Projeto de portfólio focado em vagas de Estágio / Júnior back-end.
 - Java 21
 - Spring Boot 3.3.4 (Web, Data JPA, Validation, Security)
 - JWT via jjwt 0.12.6, senhas em BCrypt
-- H2 em memória (dev/test) e PostgreSQL (perfil `prod`)
+- H2 em memória (dev/test) e PostgreSQL, ambos com o mesmo schema e seed via Flyway
 - Lombok
 - JUnit 5 + Mockito + MockMvc
 - Maven Wrapper
@@ -26,8 +26,12 @@ Passo a passo completo para Windows (pré-requisitos, PowerShell, troubleshootin
 ./mvnw spring-boot:run
 ```
 
-A aplicação sobe em `http://localhost:8080`. O `DataLoader` popula o H2 com 1 usuário demo,
-3 tecnologias (Java, Node, Python) e 2 desafios.
+A aplicação sobe em `http://localhost:8080`. As migrations do Flyway criam o schema e o catálogo
+— 4 tecnologias, 14 desafios e os critérios de correção de cada um — e o `DataLoader` cria o
+usuário demo.
+
+Para um PostgreSQL de verdade, com as tabelas gravadas em disco:
+`./mvnw spring-boot:run -Dspring-boot.run.profiles=pg` (detalhes em [EXECUTANDO.md](EXECUTANDO.md)).
 
 Credenciais do usuário demo: `demo@livecoding.dev` / `demo12345`.
 
@@ -139,7 +143,7 @@ Submissão com código curto demais (`ERRO_COMPILACAO`):
 curl -X POST http://localhost:8080/api/submissoes -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d "{\"desafioId\":1,\"codigoEnviado\":\"int x;\"}"
 ```
 
-Submissão sem a palavra-chave esperada pelo tipo do desafio (`ERRO_TESTE`):
+Submissão que não atende os critérios do desafio (`ERRO_TESTE`, com a lista do que faltou):
 
 ```bash
 curl -X POST http://localhost:8080/api/submissoes -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d "{\"desafioId\":1,\"codigoEnviado\":\"public class Solucao { public void nada() { } }\"}"
@@ -155,11 +159,11 @@ curl -i -X POST http://localhost:8080/api/submissoes -H "Authorization: Bearer $
 
 ```
 com.portfolio.livecoding
-├── config       DataLoader (seed do H2, ativo fora do perfil prod)
+├── config       DataLoader (usuario demo, ativo fora do perfil prod)
 ├── controller   AuthController, DesafioController, SubmissaoController
 ├── dto          records de request/response e filtro
-├── entity       Usuario, Tecnologia, Desafio, Submissao
-├── enums        NivelVaga, TipoDesafio, StatusSubmissao, Role
+├── entity       Usuario, Tecnologia, Desafio, Submissao, CriterioAvaliacao
+├── enums        NivelVaga, TipoDesafio, StatusSubmissao, Role, TipoCriterio
 ├── exception    RecursoNaoEncontradoException, EmailJaCadastradoException, GlobalExceptionHandler
 ├── repository   interfaces JpaRepository
 ├── security     SecurityConfig, JwtService, JwtAuthenticationFilter,
@@ -171,11 +175,24 @@ Pontos de destaque:
 
 - `DesafioRepository.buscarComFiltros` resolve os três filtros opcionais em uma única JPQL
   (`:param IS NULL OR ...`) com `JOIN FETCH` na tecnologia, evitando N+1.
-- `ValidadorCodigoService` isola a correção. Hoje aplica heurísticas estáticas — tamanho mínimo,
-  chaves e parênteses balanceados, código idêntico ao template, palavra-chave esperada por
-  `TipoDesafio`. **Não executa o código enviado.** É o ponto de troca para um runner em sandbox
+- `ValidadorCodigoService` isola a correção. Aplica as checagens estruturais (tamanho mínimo,
+  chaves e parênteses balanceados, código idêntico ao template) e depois avalia os critérios que o
+  desafio tem cadastrados na tabela `criterios_avaliacao`: `OBRIGATORIO` reprova sozinho,
+  `PONTUAVEL` soma peso para a nota de 0 a 100, `PROIBIDO` reprova se casar. Aprova com 70 ou mais.
+  Comentários são removidos antes da análise, então uma palavra-chave escondida em comentário não
+  conta como implementação. A régua de cada desafio se ajusta por SQL, sem recompilar.
+  **Não executa o código enviado.** É o ponto de troca para um runner em sandbox
   (Docker / Judge0) no futuro.
 - `spring.jpa.open-in-view=false`, mapeamento entidade→DTO na service, sem vazar entidade JPA na API.
+- Schema e catálogo versionados no Flyway (`db/migration`), aplicados em todos os perfis: o H2
+  sobe em `MODE=PostgreSQL` para aceitar o mesmo SQL do banco de produção, e o Hibernate roda em
+  `ddl-auto=validate` em qualquer perfil. `MigracaoSchemaTest` aplica o diretório inteiro no H2,
+  então uma divergência entre o SQL e as entidades quebra o build, não o deploy.
+- `GlobalExceptionHandler` cobre também o que não foi previsto: um handler de `Exception` registra
+  a causa no log e devolve 500 com mensagem genérica, sem expor SQL nem stack ao cliente. As
+  exceções próprias do Spring MVC (rota inexistente, verbo errado, enum inválido em query param)
+  implementam `ErrorResponse` e mantêm o status original em vez de virarem 500. No perfil `prod`,
+  `server.error.include-message=never` fecha a última porta de vazamento.
 - Segurança stateless: `SessionCreationPolicy.STATELESS`, CSRF desabilitado (não há sessão nem
   formulário), 401 devolvido em JSON pelo `RestAuthenticationEntryPoint` no lugar da página de
   login padrão. `Usuario` continua uma entidade JPA pura — a adaptação ao `UserDetails` fica no
@@ -189,4 +206,4 @@ Pontos de destaque:
 - Refresh token e revogação
 - Execução real do código em sandbox
 - Histórico de submissões por usuário (`GET /api/submissoes`)
-- Migrations com Flyway no lugar de `ddl-auto`
+- CRUD de desafios restrito a `ADMIN`
