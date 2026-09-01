@@ -10,8 +10,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.portfolio.livecoding.dto.CriterioResultadoDTO;
+import com.portfolio.livecoding.dto.FalaEntrevistadorDTO;
+import com.portfolio.livecoding.dto.FalaEntrevistadorDTO.AjusteDTO;
 import com.portfolio.livecoding.dto.SubmissaoResponseDTO;
 import com.portfolio.livecoding.enums.StatusSubmissao;
+import com.portfolio.livecoding.enums.TipoCriterio;
 import com.portfolio.livecoding.exception.RecursoNaoEncontradoException;
 import com.portfolio.livecoding.service.SubmissaoService;
 import java.util.List;
@@ -38,6 +41,14 @@ class SubmissaoControllerTest {
 
     static final String EMAIL = "demo@livecoding.dev";
 
+    private static final FalaEntrevistadorDTO FALA = new FalaEntrevistadorDTO(
+            "Marina Alencar", "Tech lead", "Boa, li sua solucao.",
+            List.of("O essencial esta la."),
+            List.of(new AjusteDTO("Soma o valor dos pedidos", "Agregue com SUM na consulta.",
+                    "Peso alto na minha regua.")),
+            "Voce levou 5 minutos.", "Como eu cheguei nesses numeros: ...",
+            "Me manda a proxima versao.");
+
     private static final String CODIGO_VALIDO =
             "@GetMapping public List<Produto> listar() { return repo.findAll(); }";
 
@@ -47,7 +58,10 @@ class SubmissaoControllerTest {
         when(submissaoService.registrar(any(), eq(EMAIL)))
                 .thenReturn(new SubmissaoResponseDTO(5L, StatusSubmissao.APROVADO,
                         "Todos os requisitos essenciais foram atendidos. Pontuacao: 100 de 100.",
-                        100, List.of(new CriterioResultadoDTO("Expoe um endpoint de leitura (GET)", true))));
+                        100, 100, 320,
+                        List.of(new CriterioResultadoDTO("Expoe um endpoint de leitura (GET)", true,
+                                TipoCriterio.OBRIGATORIO, 1, "Marque o metodo com @GetMapping.")),
+                        FALA));
 
         String body = "{\"desafioId\": 1, \"codigoEnviado\": \"" + CODIGO_VALIDO + "\"}";
 
@@ -61,7 +75,12 @@ class SubmissaoControllerTest {
                 .andExpect(jsonPath("$.pontuacao").value(100))
                 .andExpect(jsonPath("$.criterios[0].descricao")
                         .value("Expoe um endpoint de leitura (GET)"))
-                .andExpect(jsonPath("$.criterios[0].atendido").value(true));
+                .andExpect(jsonPath("$.criterios[0].atendido").value(true))
+                .andExpect(jsonPath("$.precisao").value(100))
+                .andExpect(jsonPath("$.duracaoSegundos").value(320))
+                .andExpect(jsonPath("$.entrevistador.entrevistador").value("Marina Alencar"))
+                .andExpect(jsonPath("$.entrevistador.ajustes[0].dica")
+                        .value("Agregue com SUM na consulta."));
     }
 
     @Test
@@ -69,7 +88,10 @@ class SubmissaoControllerTest {
     void criarUsaUsuarioAutenticado() throws Exception {
         when(submissaoService.registrar(any(), eq(EMAIL)))
                 .thenReturn(new SubmissaoResponseDTO(6L, StatusSubmissao.ERRO_TESTE, "Testes falharam.",
-                        40, List.of(new CriterioResultadoDTO("Soma o valor dos pedidos", false))));
+                        40, 55, 900,
+                        List.of(new CriterioResultadoDTO("Soma o valor dos pedidos", false,
+                                TipoCriterio.PONTUAVEL, 3, "Agregue com SUM na consulta.")),
+                        FALA));
 
         String body = "{\"desafioId\": 1, \"codigoEnviado\": \"" + CODIGO_VALIDO + "\"}";
 

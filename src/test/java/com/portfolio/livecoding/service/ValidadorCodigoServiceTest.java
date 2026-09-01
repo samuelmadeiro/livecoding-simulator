@@ -61,6 +61,7 @@ class ValidadorCodigoServiceTest {
         criterio.setPadrao(padrao);
         criterio.setTipo(tipo);
         criterio.setPeso(peso);
+        criterio.setDica("Dica cadastrada para " + descricao);
         criterio.setDesafio(desafioApiRest);
         return criterio;
     }
@@ -86,6 +87,19 @@ class ValidadorCodigoServiceTest {
     }
 
     @Test
+    @DisplayName("anotacao sem corpo de metodo nao chega a ser corrigida")
+    void anotacaoSozinhaNaoBasta() {
+        // O caso que esta classe existe para nao aprovar: a anotacao certa e nada mais.
+        String codigo = "@RestController @GetMapping @RequestMapping(\"/produtos\")";
+
+        var resultado = validador.validar(codigo, desafioApiRest, criteriosApiRest);
+
+        assertThat(resultado.status()).isEqualTo(StatusSubmissao.ERRO_COMPILACAO);
+        assertThat(resultado.mensagemFeedback()).contains("corpo de metodo");
+        assertThat(resultado.pontuacao()).isZero();
+    }
+
+    @Test
     @DisplayName("codigo identico ao template retorna ERRO_TESTE")
     void codigoIgualAoTemplate() {
         var resultado = validador.validar(desafioApiRest.getTemplateCodigo(), desafioApiRest,
@@ -96,7 +110,34 @@ class ValidadorCodigoServiceTest {
     }
 
     @Test
-    @DisplayName("solucao completa retorna APROVADO com pontuacao cheia e um item por criterio")
+    @DisplayName("template reindentado e com o comentario apagado continua sendo o template")
+    void templateReformatadoContinuaSendoTemplate() {
+        String codigo = """
+                @RestController
+                public class ProdutoController {
+                    // implementar depois
+                }
+                """;
+
+        var resultado = validador.validar(codigo, desafioApiRest, criteriosApiRest);
+
+        assertThat(resultado.status()).isEqualTo(StatusSubmissao.ERRO_TESTE);
+        assertThat(resultado.mensagemFeedback()).contains("identico ao template");
+    }
+
+    @Test
+    @DisplayName("template com um punhado de caracteres a mais nao conta como solucao")
+    void quaseIdenticoAoTemplate() {
+        String codigo = "@RestController public class ProdutoController { int x = 1; }";
+
+        var resultado = validador.validar(codigo, desafioApiRest, criteriosApiRest);
+
+        assertThat(resultado.status()).isEqualTo(StatusSubmissao.ERRO_TESTE);
+        assertThat(resultado.mensagemFeedback()).contains("poucos caracteres a mais");
+    }
+
+    @Test
+    @DisplayName("solucao completa retorna APROVADO com pontuacao e precisao cheias")
     void codigoAprovado() {
         String codigo = """
                 @RestController
@@ -112,6 +153,7 @@ class ValidadorCodigoServiceTest {
 
         assertThat(resultado.status()).isEqualTo(StatusSubmissao.APROVADO);
         assertThat(resultado.pontuacao()).isEqualTo(100);
+        assertThat(resultado.precisao()).isEqualTo(100);
         assertThat(resultado.itens()).hasSize(criteriosApiRest.size());
         assertThat(resultado.itens()).allMatch(ValidadorCodigoService.ItemAvaliado::atendido);
     }
@@ -133,6 +175,9 @@ class ValidadorCodigoServiceTest {
 
         assertThat(resultado.status()).isEqualTo(StatusSubmissao.ERRO_TESTE);
         assertThat(resultado.pontuacao()).isEqualTo(100);
+        // Nota cheia nos pontuaveis e ainda assim precisao longe de 100: e a diferenca entre as
+        // duas medidas — a nota so olha o que vale ponto, a precisao olha a regua inteira.
+        assertThat(resultado.precisao()).isLessThan(100);
         assertThat(resultado.itens())
                 .filteredOn(item -> item.descricao().contains("endpoint de leitura"))
                 .allMatch(item -> !item.atendido());
@@ -179,6 +224,58 @@ class ValidadorCodigoServiceTest {
     }
 
     @Test
+    @DisplayName("nota acima do minimo nao aprova sozinha se a precisao geral ficar baixa")
+    void precisaoBaixaReprova() {
+        // Um obrigatorio leve e dois pontuaveis pesados: a nota bate 70, mas a solucao cobre
+        // pouco da regua inteira.
+        List<CriterioAvaliacao> reguaDesbalanceada = List.of(
+                criterio("Devolve o resultado com return", "return\\s+[^;]+;",
+                        TipoCriterio.OBRIGATORIO, 1),
+                criterio("Mapeia a rota /produtos", "produtos", TipoCriterio.PONTUAVEL, 14),
+                criterio("Trata a lista vazia", "isEmpty", TipoCriterio.PONTUAVEL, 6));
+
+        String codigo = """
+                public class ProdutoController {
+                    public List<Produto> listarProdutos() {
+                        return montar();
+                    }
+                }
+                """;
+
+        var resultado = validador.validar(codigo, desafioApiRest, reguaDesbalanceada);
+
+        assertThat(resultado.status()).isEqualTo(StatusSubmissao.ERRO_TESTE);
+        assertThat(resultado.pontuacao()).isGreaterThanOrEqualTo(70);
+        assertThat(resultado.precisao()).isLessThan(75);
+        assertThat(resultado.mensagemFeedback()).contains("precisao");
+    }
+
+    @Test
+    @DisplayName("desafio com regua curta demais nao aprova sozinho, vai para revisao manual")
+    void reguaCurtaNaoAprova() {
+        List<CriterioAvaliacao> reguaCurta = List.of(
+                criterio("Expoe um endpoint de leitura (GET)", "(GetMapping|RequestMethod\\.GET)",
+                        TipoCriterio.OBRIGATORIO, 1),
+                criterio("Devolve o resultado com return", "return\\s+[^;]+;",
+                        TipoCriterio.OBRIGATORIO, 1));
+
+        String codigo = """
+                @RestController
+                public class ProdutoController {
+                    @GetMapping("/produtos")
+                    public List<Produto> listar() {
+                        return repository.findAll();
+                    }
+                }
+                """;
+
+        var resultado = validador.validar(codigo, desafioApiRest, reguaCurta);
+
+        assertThat(resultado.status()).isEqualTo(StatusSubmissao.PENDENTE);
+        assertThat(resultado.mensagemFeedback()).contains("revisao manual");
+    }
+
+    @Test
     @DisplayName("palavra-chave escondida em comentario nao conta como implementacao")
     void comentarioNaoContaComoCodigo() {
         String codigo = """
@@ -199,14 +296,15 @@ class ValidadorCodigoServiceTest {
     }
 
     @Test
-    @DisplayName("desafio sem criterios cadastrados cai na heuristica antiga por tipo")
-    void semCriteriosUsaFallback() {
-        String codigo = "public class Solucao { public void nadaDemais() { System.out.println(1); } }";
+    @DisplayName("desafio sem criterios nao aprova por palavra-chave: fica PENDENTE")
+    void semCriteriosNaoAprovaPorPalavraChave() {
+        // A heuristica antiga aprovava qualquer codigo com "mapping" num desafio de API REST.
+        String codigo = "public class Solucao { public void nada() { int mapping = 1; } }";
 
         var resultado = validador.validar(codigo, desafioApiRest, List.of());
 
-        assertThat(resultado.status()).isEqualTo(StatusSubmissao.ERRO_TESTE);
-        assertThat(resultado.mensagemFeedback()).contains("mapping");
+        assertThat(resultado.status()).isEqualTo(StatusSubmissao.PENDENTE);
+        assertThat(resultado.mensagemFeedback()).contains("revisao manual");
         assertThat(resultado.itens()).isEmpty();
     }
 
@@ -230,5 +328,28 @@ class ValidadorCodigoServiceTest {
 
         assertThat(resultado.status()).isEqualTo(StatusSubmissao.ERRO_TESTE);
         assertThat(resultado.pontuacao()).isZero();
+    }
+
+    @Test
+    @DisplayName("cada item avaliado carrega tipo, peso e dica para o feedback")
+    void itensCarregamTipoPesoEDica() {
+        String codigo = """
+                @RestController
+                public class ProdutoController {
+                    @GetMapping("/produtos")
+                    public List<Produto> listar() {
+                        return repository.findAll();
+                    }
+                }
+                """;
+
+        var resultado = validador.validar(codigo, desafioApiRest, criteriosApiRest);
+
+        assertThat(resultado.itens())
+                .allSatisfy(item -> {
+                    assertThat(item.tipo()).isNotNull();
+                    assertThat(item.peso()).isPositive();
+                    assertThat(item.dica()).isNotBlank();
+                });
     }
 }

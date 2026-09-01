@@ -84,6 +84,21 @@ class SecurityIntegrationTest {
     }
 
     @Test
+    @DisplayName("cronometro do desafio exige token")
+    void cronometroExigeToken() throws Exception {
+        mockMvc.perform(post("/api/desafios/" + idDoCrudDeProdutos() + "/iniciar"))
+                .andExpect(status().isUnauthorized());
+
+        String token = login("demo@livecoding.dev", "demo12345");
+
+        mockMvc.perform(post("/api/desafios/" + idDoCrudDeProdutos() + "/iniciar")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tentativaId").isNumber())
+                .andExpect(jsonPath("$.decorridoSegundos").isNumber());
+    }
+
+    @Test
     @DisplayName("login com senha errada retorna 401")
     void loginSenhaErrada() throws Exception {
         mockMvc.perform(post("/api/auth/login")

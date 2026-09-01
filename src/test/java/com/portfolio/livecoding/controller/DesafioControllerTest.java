@@ -14,6 +14,7 @@ import com.portfolio.livecoding.enums.NivelVaga;
 import com.portfolio.livecoding.enums.TipoDesafio;
 import com.portfolio.livecoding.exception.RecursoNaoEncontradoException;
 import com.portfolio.livecoding.service.DesafioService;
+import com.portfolio.livecoding.service.TentativaService;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -33,6 +34,10 @@ class DesafioControllerTest {
 
     @MockBean
     private DesafioService desafioService;
+
+    /** O controller tambem abre o cronometro da questao; aqui so o catalogo esta sob teste. */
+    @MockBean
+    private TentativaService tentativaService;
 
     private static final DesafioResponseDTO DESAFIO = new DesafioResponseDTO(
             10L,
