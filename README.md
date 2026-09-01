@@ -34,6 +34,8 @@ Para um PostgreSQL de verdade, com as tabelas gravadas em disco:
 `./mvnw spring-boot:run -Dspring-boot.run.profiles=pg` (detalhes em [EXECUTANDO.md](EXECUTANDO.md)).
 
 Credenciais do usuário demo: `demo@livecoding.dev` / `demo12345`.
+Credenciais do admin em desenvolvimento: `admin@livecoding.dev` / `admin12345` (configuráveis por
+`ADMIN_EMAIL` e `ADMIN_SENHA`; o perfil `prod` não cria admin sem essas variáveis).
 
 Console do H2: `http://localhost:8080/h2-console`
 JDBC URL `jdbc:h2:mem:livecoding` · usuário `sa` · senha vazia.
@@ -55,7 +57,8 @@ Configurável por variáveis de ambiente `DB_URL`, `DB_USER`, `DB_PASSWORD`.
 ## Front-end
 
 A pasta [`frontend/`](frontend/) tem a interface que consome esta API: catalogo filtravel, editor
-de codigo e correcao na tela. Com o back-end no ar:
+de codigo com cronometro, correcao na tela com o retorno do entrevistador e, para quem entra com
+uma conta `ADMIN`, a pagina `/admin` com o painel de metricas. Com o back-end no ar:
 
 ```bash
 cd frontend && npm install && npm run dev
@@ -72,13 +75,20 @@ design e as limitacoes conhecidas estao no [README do front](frontend/README.md)
 | POST | `/api/auth/login` | público | Autentica e devolve o token |
 | GET | `/api/desafios` | público | Lista desafios. Query params opcionais: `nivel`, `tecnologiaId`, `tipo` |
 | GET | `/api/desafios/{id}` | público | Detalha um desafio, incluindo o template de código |
+| POST | `/api/desafios/{id}/iniciar` | **JWT** | Abre (ou recupera) o cronômetro da questão |
 | POST | `/api/submissoes` | **JWT** | Recebe o código do candidato, corrige e persiste a submissão |
+| GET | `/api/admin/metricas` | **JWT + ADMIN** | Painel: tempo e % de acerto por candidato, precisão por exercício |
 
 ### Autenticação
 
 API stateless com JWT. O token vai no header `Authorization: Bearer <token>` e carrega o email
-no `subject` e a role como claim. Roles: `CANDIDATO` (padrão no cadastro) e `ADMIN` (reservado
-para o futuro CRUD de desafios).
+no `subject` e a role como claim. Roles: `CANDIDATO` (padrão no cadastro) e `ADMIN`, que abre o
+painel em `/api/admin/**` e a página `/admin` do front.
+
+A conta de admin é criada no boot pelo `AdminBootstrap`, a partir de `app.admin.email` e
+`app.admin.senha`. Em desenvolvimento os defaults são `admin@livecoding.dev` / `admin12345`. O
+perfil `prod` **não** tem default: sem `ADMIN_EMAIL` e `ADMIN_SENHA` no ambiente, nenhum admin
+nasce — e um e-mail que já exista como candidato é promovido a `ADMIN` sem ter a senha reescrita.
 
 A submissão é sempre atribuída ao dono do token — o cliente não escolhe o usuário.
 
@@ -89,9 +99,19 @@ O perfil `prod` não tem default — a aplicação não sobe sem ela. Expiraçã
 
 ### Enums
 
-- `NivelVaga`: `ESTAGIO`, `JUNIOR`, `PLENO`
+- `NivelVaga`: `ESTAGIO`, `JUNIOR`, `PLENO`, `SENIOR`
 - `TipoDesafio`: `API_REST`, `ALGORITMO_EASY`, `BANCO_DADOS`
 - `StatusSubmissao`: `PENDENTE`, `APROVADO`, `ERRO_COMPILACAO`, `ERRO_TESTE`
+- `TipoCriterio`: `OBRIGATORIO`, `PONTUAVEL`, `PROIBIDO`
+
+### Correção: nota, precisão e tempo
+
+Cada submissão volta com dois números diferentes e um tempo:
+
+- **nota** (0 a 100): quanto a solução entregou dos critérios `PONTUAVEL`, cada um com seu peso;
+- **precisão** (0 a 100): quanto ela cobriu da régua inteira do desafio — obrigatórios (contando
+  dobrado), pontuáveis e proibidos. É a "% de precisão" que o painel agrega por exercício;
+- **duração**: medida pelo servidor, entre `POST /api/desafios/{id}/iniciar` e a submissão.
 
 ## Exemplos
 
@@ -155,20 +175,42 @@ Body inválido (400 com o mapa de erros de validação):
 curl -i -X POST http://localhost:8080/api/submissoes -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d "{\"desafioId\":1}"
 ```
 
+Abrir o cronômetro da questão e enviar fechando a tentativa:
+
+```bash
+TENTATIVA=$(curl -s -X POST http://localhost:8080/api/desafios/1/iniciar -H "Authorization: Bearer $TOKEN" | jq -r .tentativaId)
+```
+
+```bash
+curl -X POST http://localhost:8080/api/submissoes -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d "{\"desafioId\":1,\"codigoEnviado\":\"public class Solucao { public int contarVogais(String t) { int total = 0; for (char c : t.toLowerCase().toCharArray()) { if (\\\"aeiou\\\".indexOf(c) >= 0) { total++; } } return total; } }\",\"tentativaId\":$TENTATIVA}"
+```
+
+Painel do admin (403 com token de candidato):
+
+```bash
+ADMIN=$(curl -s -X POST http://localhost:8080/api/auth/login -H "Content-Type: application/json" -d "{\"email\":\"admin@livecoding.dev\",\"senha\":\"admin12345\"}" | jq -r .token)
+```
+
+```bash
+curl -s http://localhost:8080/api/admin/metricas -H "Authorization: Bearer $ADMIN" | jq .resumo
+```
+
 ## Arquitetura
 
 ```
 com.portfolio.livecoding
-├── config       DataLoader (usuario demo, ativo fora do perfil prod)
-├── controller   AuthController, DesafioController, SubmissaoController
-├── dto          records de request/response e filtro
-├── entity       Usuario, Tecnologia, Desafio, Submissao, CriterioAvaliacao
+├── config       DataLoader (usuario demo, fora do perfil prod), AdminBootstrap (conta de admin)
+├── controller   AuthController, DesafioController, SubmissaoController, AdminController
+├── dto          records de request/response, filtro e os DTOs do painel em dto/admin
+├── entity       Usuario, Tecnologia, Desafio, Submissao, CriterioAvaliacao,
+│                Tentativa (cronometro), ResultadoCriterio (correcao item a item)
 ├── enums        NivelVaga, TipoDesafio, StatusSubmissao, Role, TipoCriterio
 ├── exception    RecursoNaoEncontradoException, EmailJaCadastradoException, GlobalExceptionHandler
-├── repository   interfaces JpaRepository
+├── repository   interfaces JpaRepository + projecao/ (linhas agregadas do painel)
 ├── security     SecurityConfig, JwtService, JwtAuthenticationFilter,
 │                UsuarioDetailsService, RestAuthenticationEntryPoint
-└── service      AuthService, DesafioService, SubmissaoService, ValidadorCodigoService
+└── service      AuthService, DesafioService, SubmissaoService, ValidadorCodigoService,
+                 TentativaService, FeedbackEntrevistadorService, AdminMetricasService
 ```
 
 Pontos de destaque:
@@ -176,13 +218,29 @@ Pontos de destaque:
 - `DesafioRepository.buscarComFiltros` resolve os três filtros opcionais em uma única JPQL
   (`:param IS NULL OR ...`) com `JOIN FETCH` na tecnologia, evitando N+1.
 - `ValidadorCodigoService` isola a correção. Aplica as checagens estruturais (tamanho mínimo,
-  chaves e parênteses balanceados, código idêntico ao template) e depois avalia os critérios que o
-  desafio tem cadastrados na tabela `criterios_avaliacao`: `OBRIGATORIO` reprova sozinho,
-  `PONTUAVEL` soma peso para a nota de 0 a 100, `PROIBIDO` reprova se casar. Aprova com 70 ou mais.
-  Comentários são removidos antes da análise, então uma palavra-chave escondida em comentário não
-  conta como implementação. A régua de cada desafio se ajusta por SQL, sem recompilar.
-  **Não executa o código enviado.** É o ponto de troca para um runner em sandbox
-  (Docker / Judge0) no futuro.
+  chaves e parênteses balanceados, código igual — ou quase igual — ao template, ausência de corpo
+  de método/função/consulta) e depois avalia os critérios que o desafio tem cadastrados na tabela
+  `criterios_avaliacao`: `OBRIGATORIO` reprova sozinho, `PONTUAVEL` soma peso para a nota de 0 a
+  100, `PROIBIDO` reprova se casar. Comentários são removidos antes da análise, então uma
+  palavra-chave escondida em comentário não conta como implementação. A régua de cada desafio se
+  ajusta por SQL, sem recompilar. **Não executa o código enviado.** É o ponto de troca para um
+  runner em sandbox (Docker / Judge0) no futuro.
+- **Nenhum sinal isolado aprova uma questão.** Aprovar exige, ao mesmo tempo: nenhum `PROIBIDO`
+  casado, todos os `OBRIGATORIO` atendidos, nota ≥ 70 e precisão ≥ 75%. Um desafio com menos de
+  três critérios nunca aprova sozinho, e desafio sem critério nenhum deixou de aprovar por
+  palavra-chave do tipo (o antigo "achou `mapping`, passou"): a submissão fica `PENDENTE`, para
+  revisão manual. Um `@GetMapping` solto, sem corpo de método, nem chega à fase de critérios.
+- `FeedbackEntrevistadorService` devolve a correção como a fala de um entrevistador: o que agradou,
+  o que ajustar (com a `dica` cadastrada para cada critério, que aponta o caminho sem entregar a
+  solução), um comentário sobre o tempo e a explicação de como a nota e a precisão foram formadas.
+  Sem chamada a modelo de linguagem: o texto é montado por regra a partir do resultado da correção.
+- `TentativaService` mede o tempo no relógio do servidor, entre `POST /api/desafios/{id}/iniciar` e
+  a submissão. O corpo da submissão informa qual tentativa está sendo fechada, nunca quantos
+  segundos levou — dado de avaliação vindo do cliente é dado que o cliente escolhe.
+- `AdminMetricasService` monta o painel em quatro consultas agregadas (`GROUP BY` no banco, com
+  `LEFT JOIN` para candidato sem envio e desafio sem tentativa aparecerem com zero). A taxa de
+  acerto por critério sai de `resultados_criterio`, gravada junto com cada submissão: é ela que diz
+  em qual ponto de cada exercício as pessoas travam, coisa que a nota final não conta.
 - `spring.jpa.open-in-view=false`, mapeamento entidade→DTO na service, sem vazar entidade JPA na API.
 - Schema e catálogo versionados no Flyway (`db/migration`), aplicados em todos os perfis: o H2
   sobe em `MODE=PostgreSQL` para aceitar o mesmo SQL do banco de produção, e o Hibernate roda em
@@ -206,4 +264,4 @@ Pontos de destaque:
 - Refresh token e revogação
 - Execução real do código em sandbox
 - Histórico de submissões por usuário (`GET /api/submissoes`)
-- CRUD de desafios restrito a `ADMIN`
+- CRUD de desafios restrito a `ADMIN`, editando critérios e dicas pela própria página do painel

@@ -1,7 +1,8 @@
 # Front-end do LiveCoding Simulator
 
-SPA em React 19 + TypeScript + Tailwind v4 sobre a API do projeto. Cobre o fluxo do candidato:
-catálogo filtrável, leitura do enunciado, escrita da solução, envio autenticado e correção.
+SPA em React 19 + TypeScript + Tailwind v4 sobre a API do projeto. Cobre o fluxo do candidato —
+catálogo filtrável, leitura do enunciado, escrita da solução cronometrada, envio autenticado e
+correção com o retorno do entrevistador — e o painel de quem administra, em `/admin`.
 
 ## Rodar
 
@@ -19,6 +20,8 @@ A aplicação sobe em `http://localhost:5173`, origem já liberada no CORS do ba
 para outro endereço, defina `VITE_API_URL`.
 
 Entre com o usuário de demonstração criado pelo `DataLoader`: `demo@livecoding.dev` / `demo12345`.
+Para ver o painel, entre com a conta de admin de desenvolvimento: `admin@livecoding.dev` /
+`admin12345`. O link **Painel** só aparece no cabeçalho para quem tem role `ADMIN`.
 
 ## Decisões de design
 
@@ -33,6 +36,12 @@ como ferramenta de trabalho, não como página de captura:
   Tailwind.
 - **Layout assimétrico:** filtros em trilho à esquerda e lista à direita no catálogo; enunciado e
   editor lado a lado no desafio.
+- **Cronômetro do servidor.** O relógio da questão parte do tempo devolvido por
+  `POST /api/desafios/{id}/iniciar` e só corre na tela — recarregar a página não devolve tempo.
+- **Duas medidas, não uma.** A correção mostra nota e precisão lado a lado, porque respondem
+  perguntas diferentes: a nota conta só o que valia ponto, a precisão conta a régua inteira.
+- **Tabelas do painel rolam no próprio contêiner** (`overflow-x-auto`), e cada percentual vem
+  escrito ao lado da barra: a barra é reforço, nunca a única leitura do valor.
 - Sem emoji, sem gradiente decorativo. Ícones vêm de um conjunto único, `lucide-react`.
 
 Todo valor visual sai de `src/design-tokens.css`. Não existe cor, espaçamento ou tamanho de fonte
@@ -40,7 +49,7 @@ escrito direto no componente.
 
 ## Acessibilidade
 
-Verificado com axe-core nas quatro telas, sem violações. Além disso:
+Verificado com axe-core nas telas do candidato, sem violações. Além disso:
 
 - Contraste conferido par a par: mínimo 4.5:1 em texto e 3:1 em componente e indicador de foco.
 - Anel de foco duplo, porque um anel simples não contrasta com o botão de acento.

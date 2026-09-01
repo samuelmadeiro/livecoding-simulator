@@ -55,6 +55,12 @@ O `DataLoader` (ativo fora do perfil `prod`) só cria o usuário demo
 `demo@livecoding.dev` / `demo12345` (role `CANDIDATO`) — a senha precisa passar pelo
 `PasswordEncoder`, e produção não pode ganhar conta de teste.
 
+A conta de admin vem do `AdminBootstrap`, que roda em qualquer perfil mas só faz alguma coisa se
+`app.admin.email` e `app.admin.senha` estiverem preenchidos. Em desenvolvimento os defaults são
+`admin@livecoding.dev` / `admin12345` (role `ADMIN`); no perfil `prod` os dois são vazios, então
+sem `ADMIN_EMAIL` e `ADMIN_SENHA` no ambiente nenhum admin nasce. Se o e-mail já existir como
+candidato, a conta é promovida a `ADMIN` — a senha nunca é reescrita.
+
 Os ids não são estáveis entre bancos: consulte por título, não por `id 1`.
 
 ### Como a correção decide aprovado ou reprovado
@@ -68,9 +74,20 @@ critério é uma regex com um papel:
 | `PONTUAVEL` | Soma o `peso` para a nota de 0 a 100 |
 | `PROIBIDO` | Se casar, reprova (ex.: `TODO` deixado no código) |
 
-Aprova com **70** ou mais nos pontuáveis e nenhum obrigatório falhando. Comentários são removidos
-antes da análise, então `// return` não conta mais como implementação. A nota fica gravada em
-`submissoes.pontuacao` e a resposta da API detalha item a item o que passou e o que faltou.
+Aprovar exige as quatro coisas ao mesmo tempo: nenhum `PROIBIDO` casado, todos os `OBRIGATORIO`
+atendidos, **nota ≥ 70** nos pontuáveis e **precisão ≥ 75%** na régua inteira. Desafio com menos de
+três critérios nunca aprova sozinho, e desafio sem critério nenhum não aprova por palavra-chave:
+a submissão fica `PENDENTE` para revisão manual. Um `@GetMapping` solto, sem corpo de método, nem
+chega à fase dos critérios — para antes, em `ERRO_COMPILACAO`.
+
+Comentários são removidos antes da análise, então `// return` não conta como implementação. A nota
+fica em `submissoes.pontuacao`, a precisão em `submissoes.precisao`, o tempo em
+`submissoes.duracao_segundos` e o resultado de cada critério em `resultados_criterio` — é essa
+tabela que alimenta a taxa de acerto por critério no painel do admin.
+
+A resposta da API ainda traz o campo `entrevistador`: o mesmo resultado escrito como a fala de
+quem entrevista, com a `dica` cadastrada para cada critério que falhou. Para mudar o que o
+entrevistador diz, edite `criterios_avaliacao.dica` — nada de recompilar.
 
 Para ajustar a régua de um desafio, edite a tabela — não o código:
 
@@ -133,7 +150,12 @@ npm run dev
 
 Abre em `http://localhost:5173` — origem ja liberada no CORS do back-end
 (`app.cors.allowed-origins`). Entre com o usuario demo e percorra o fluxo: filtrar o catalogo,
-abrir um desafio, escrever a solucao e enviar para correcao.
+abrir um desafio (o cronometro comeca ai), escrever a solucao e enviar para correcao.
+
+Entrando com `admin@livecoding.dev` / `admin12345`, aparece o link **Painel** no cabecalho, que
+abre `/admin`: tempo e percentual de acerto por candidato, precisao por exercicio e a taxa de
+acerto de cada criterio. Com uma conta de candidato, a rota `/admin` mostra "area restrita" — e o
+back-end responde 403 de qualquer jeito.
 
 Para apontar o front para outro back-end, defina `VITE_API_URL` antes do `npm run dev`.
 
