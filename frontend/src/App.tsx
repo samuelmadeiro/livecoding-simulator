@@ -1,6 +1,8 @@
 import { Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./auth/AuthContext";
+import { RotaAdmin } from "./auth/RotaAdmin";
 import { Cabecalho } from "./components/Cabecalho";
+import { AdminPage } from "./pages/AdminPage";
 import { CatalogoPage } from "./pages/CatalogoPage";
 import { DesafioPage } from "./pages/DesafioPage";
 import { LoginPage } from "./pages/LoginPage";
@@ -21,6 +23,14 @@ export default function App() {
         <Route path="/desafios/:id" element={<DesafioPage />} />
         <Route path="/entrar" element={<LoginPage />} />
         <Route path="/cadastrar" element={<RegistroPage />} />
+        <Route
+          path="/admin"
+          element={
+            <RotaAdmin>
+              <AdminPage />
+            </RotaAdmin>
+          }
+        />
         <Route path="*" element={<NaoEncontrada />} />
       </Routes>
     </AuthProvider>

@@ -16,7 +16,9 @@ function ler(): Sessao | null {
     const cru = sessionStorage.getItem(CHAVE);
     if (!cru) return null;
     const sessao = JSON.parse(cru) as Sessao;
-    return sessao.expiraEm > Date.now() ? sessao : null;
+    if (sessao.expiraEm <= Date.now()) return null;
+    // Sessao gravada antes de a role existir: trata como candidato ate o proximo login.
+    return { ...sessao, role: sessao.role ?? "CANDIDATO" };
   } catch {
     return null;
   }
@@ -30,6 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       token: resposta.token,
       nome: resposta.nome,
       email: resposta.email,
+      role: resposta.role,
       expiraEm: Date.now() + resposta.expiraEmMs,
     };
     setSessao(nova);
@@ -65,6 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       sessao,
       autenticado: sessao != null,
+      admin: sessao?.role === "ADMIN",
       entrar: async (email, senha) => guardar(await api.entrar(email, senha)),
       cadastrar: async (nome, email, senha) =>
         guardar(await api.cadastrar(nome, email, senha)),

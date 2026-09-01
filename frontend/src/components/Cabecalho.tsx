@@ -4,7 +4,7 @@ import { useAuth } from "../auth/useAuth";
 import { Botao } from "./Botao";
 
 export function Cabecalho() {
-  const { sessao, autenticado, sair } = useAuth();
+  const { sessao, autenticado, admin, sair } = useAuth();
 
   return (
     <header className="border-b border-borda bg-elevada">
@@ -29,6 +29,20 @@ export function Cabecalho() {
           >
             Desafios
           </NavLink>
+
+          {admin ? (
+            <NavLink
+              to="/admin"
+              className={({ isActive }) =>
+                "rounded-padrao px-3 py-2 text-sm " +
+                (isActive
+                  ? "font-medium text-acento underline decoration-2 underline-offset-8"
+                  : "text-tinta-media hover:text-tinta")
+              }
+            >
+              Painel
+            </NavLink>
+          ) : null}
 
           {autenticado ? (
             <div className="flex items-center gap-3">

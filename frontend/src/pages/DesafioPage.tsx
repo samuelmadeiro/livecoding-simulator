@@ -1,5 +1,5 @@
 import { ArrowLeft, Clock } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ErroDeApi, api } from "../api/client";
 import {
@@ -7,9 +7,11 @@ import {
   ROTULO_TIPO,
   type Desafio,
   type Submissao,
+  type Tentativa,
 } from "../api/types";
 import { useAuth } from "../auth/useAuth";
 import { Botao } from "../components/Botao";
+import { Cronometro } from "../components/Cronometro";
 import { EditorCodigo } from "../components/EditorCodigo";
 import { Carregando, Falha } from "../components/Estados";
 import { Etiqueta } from "../components/Etiqueta";
@@ -26,7 +28,11 @@ export function DesafioPage() {
   const [enviando, setEnviando] = useState(false);
   const [resultado, setResultado] = useState<Submissao | null>(null);
   const [erroEnvio, setErroEnvio] = useState<string | null>(null);
+  const [tentativa, setTentativa] = useState<Tentativa | null>(null);
+  const [segundos, setSegundos] = useState(0);
   const ancoraResultado = useRef<HTMLDivElement>(null);
+
+  const token = sessao?.token ?? null;
 
   useEffect(() => {
     const numero = Number(id);
@@ -55,6 +61,34 @@ export function DesafioPage() {
     };
   }, [id]);
 
+  /*
+   * O cronômetro é aberto no servidor. Falhar aqui não pode travar a prática: sem tentativa o
+   * candidato continua resolvendo e a submissão fica apenas sem tempo registrado.
+   */
+  const abrirTentativa = useCallback(
+    async (desafioId: number, tokenAtual: string) => {
+      try {
+        const aberta = await api.iniciarDesafio(desafioId, tokenAtual);
+        setTentativa(aberta);
+        setSegundos(aberta.decorridoSegundos);
+      } catch {
+        setTentativa(null);
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!desafio || !token) return;
+    void abrirTentativa(desafio.id, token);
+  }, [desafio, token, abrirTentativa]);
+
+  useEffect(() => {
+    if (!tentativa) return;
+    const id = window.setInterval(() => setSegundos((atual) => atual + 1), 1000);
+    return () => window.clearInterval(id);
+  }, [tentativa]);
+
   async function enviar() {
     if (!desafio || !sessao) return;
 
@@ -63,11 +97,20 @@ export function DesafioPage() {
     setResultado(null);
 
     try {
-      const resposta = await api.enviarSubmissao(desafio.id, codigo, sessao.token);
+      const resposta = await api.enviarSubmissao(
+        desafio.id,
+        codigo,
+        sessao.token,
+        tentativa?.tentativaId,
+      );
       setResultado(resposta);
       // Move o foco para o resultado: sem isso, quem usa teclado ou leitor de tela nao percebe
       // que a resposta chegou no fim da pagina.
       requestAnimationFrame(() => ancoraResultado.current?.focus());
+
+      // A tentativa foi fechada no servidor. Abrir outra deixa o relógio medindo o tempo de
+      // correção — que é o que a próxima submissão vai reportar.
+      void abrirTentativa(desafio.id, sessao.token);
     } catch (causa: unknown) {
       if (causa instanceof ErroDeApi && causa.naoAutorizado) {
         navegar("/entrar", { state: { de: `/desafios/${desafio.id}` } });
@@ -147,9 +190,21 @@ export function DesafioPage() {
         </main>
 
         <section aria-labelledby="titulo-solucao" className="flex flex-col gap-6">
-          <h2 id="titulo-solucao" className="text-md text-tinta">
-            Sua solução
-          </h2>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <h2 id="titulo-solucao" className="text-md text-tinta">
+              Sua solução
+            </h2>
+
+            {tentativa ? (
+              <Cronometro segundos={segundos} limiteMinutos={desafio.tempoLimiteMinutos} />
+            ) : (
+              <p className="text-sm text-tinta-fraca">
+                {autenticado
+                  ? "Cronômetro indisponível nesta tentativa."
+                  : "Entre para o cronômetro contar o seu tempo."}
+              </p>
+            )}
+          </div>
 
           <EditorCodigo
             rotulo="Código da solução"

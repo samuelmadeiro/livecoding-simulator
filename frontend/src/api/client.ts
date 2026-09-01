@@ -2,7 +2,9 @@ import type {
   Autenticacao,
   Desafio,
   FiltroDesafios,
+  PainelAdmin,
   Submissao,
+  Tentativa,
 } from "./types";
 
 const BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8080";
@@ -111,15 +113,36 @@ export const api = {
     });
   },
 
+  /**
+   * Abre (ou recupera) o cronometro do desafio. Chamar de novo devolve a tentativa que ja estava
+   * aberta, entao recarregar a pagina no meio da questao nao zera o relogio.
+   */
+  iniciarDesafio(desafioId: number, token: string): Promise<Tentativa> {
+    return requisitar<Tentativa>(
+      `/api/desafios/${desafioId}/iniciar`,
+      { method: "POST" },
+      token,
+    );
+  },
+
   enviarSubmissao(
     desafioId: number,
     codigoEnviado: string,
     token: string,
+    tentativaId?: number | null,
   ): Promise<Submissao> {
+    // O tempo gasto nao vai no corpo de proposito: quem mede e o servidor, a partir da tentativa.
     return requisitar<Submissao>(
       "/api/submissoes",
-      { method: "POST", body: JSON.stringify({ desafioId, codigoEnviado }) },
+      {
+        method: "POST",
+        body: JSON.stringify({ desafioId, codigoEnviado, tentativaId: tentativaId ?? null }),
+      },
       token,
     );
+  },
+
+  buscarPainelAdmin(token: string): Promise<PainelAdmin> {
+    return requisitar<PainelAdmin>("/api/admin/metricas", {}, token);
   },
 };
