@@ -108,6 +108,6 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.mensagem").value("Email ou senha invalidos."));
+                .andExpect(jsonPath("$.mensagem").value("Email ou senha inválidos."));
     }
 }

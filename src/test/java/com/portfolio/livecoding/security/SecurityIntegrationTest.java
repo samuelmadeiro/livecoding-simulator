@@ -90,7 +90,7 @@ class SecurityIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"demo@livecoding.dev\",\"senha\":\"errada\"}"))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.mensagem").value("Email ou senha invalidos."));
+                .andExpect(jsonPath("$.mensagem").value("Email ou senha inválidos."));
     }
 
     @Test

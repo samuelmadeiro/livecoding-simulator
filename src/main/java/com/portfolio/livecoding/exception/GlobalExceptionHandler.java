@@ -4,11 +4,15 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.lang.NonNull;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.ErrorResponse;
@@ -22,21 +26,21 @@ public class GlobalExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(RecursoNaoEncontradoException.class)
-    public ResponseEntity<Map<String, Object>> handleNaoEncontrado(RecursoNaoEncontradoException ex) {
+    public ResponseEntity<Map<String, Object>> handleNaoEncontrado(@NonNull RecursoNaoEncontradoException ex) {
         Map<String, Object> corpo = new HashMap<>();
         corpo.put("timestamp", LocalDateTime.now());
-        corpo.put("status", HttpStatus.NOT_FOUND.value());
+        corpo.put("status", HttpStatus.NOT_FOUND.value());//o estado no http
         corpo.put("mensagem", ex.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(corpo);
     }
 
     @ExceptionHandler(EmailJaCadastradoException.class)
-    public ResponseEntity<Map<String, Object>> handleEmailDuplicado(EmailJaCadastradoException ex) {
+    public ResponseEntity<Map<String, Object>> handleEmailDuplicado(@NonNull EmailJaCadastradoException ex) {
         Map<String, Object> corpo = new HashMap<>();
         corpo.put("timestamp", LocalDateTime.now());
         corpo.put("status", HttpStatus.CONFLICT.value());
         corpo.put("mensagem", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(corpo);
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(corpo);//ja existindo cadastro no email
     }
 
     @ExceptionHandler(BadCredentialsException.class)
@@ -44,15 +48,15 @@ public class GlobalExceptionHandler {
         Map<String, Object> corpo = new HashMap<>();
         corpo.put("timestamp", LocalDateTime.now());
         corpo.put("status", HttpStatus.UNAUTHORIZED.value());
-        corpo.put("mensagem", "Email ou senha invalidos.");
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(corpo);
+        corpo.put("mensagem", "Email ou senha inválidos.");
+        corpo.put("retorno", "Coloque senha ou email validos");
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(corpo);//invalida a entrada de email ou senha
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, Object>> handleValidacao(MethodArgumentNotValidException ex) {
+    public ResponseEntity<Map<String, Object>> handleValidacao(@NonNull MethodArgumentNotValidException ex) {
         Map<String, String> erros = new HashMap<>();
-        ex.getBindingResult().getFieldErrors()
-                .forEach(erro -> erros.put(erro.getField(), erro.getDefaultMessage()));
+        ex.getBindingResult().getFieldErrors().forEach(erro -> erros.put(erro.getField(), erro.getDefaultMessage()));
 
         Map<String, Object> corpo = new HashMap<>();
         corpo.put("timestamp", LocalDateTime.now());
@@ -64,7 +68,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Map<String, Object>> handleCorpoIlegivel(HttpMessageNotReadableException ex) {
         return ResponseEntity.badRequest()
-                .body(corpo(HttpStatus.BAD_REQUEST, "Corpo da requisicao ausente ou em JSON invalido."));
+                .body(corpo(HttpStatus.BAD_REQUEST, "Corpo da requisicao ausente ou em JSON invalido."));//requisção errata, raramente o erro vai ser de json
     }
 
     @ExceptionHandler(AccessDeniedException.class)
@@ -96,7 +100,10 @@ public class GlobalExceptionHandler {
     }
 
     /** Texto generico por status: descreve o problema sem repetir detalhe interno da excecao. */
-    private String mensagemPara(HttpStatus status) {
+
+    @Contract(pure = true)
+    @NonNull
+    private String mensagemPara(@NotNull HttpStatus status) {
         return switch (status) {
             case BAD_REQUEST -> "Requisicao invalida. Confira os parametros enviados.";
             case NOT_FOUND -> "Recurso nao encontrado.";
@@ -106,7 +113,7 @@ public class GlobalExceptionHandler {
         };
     }
 
-    private Map<String, Object> corpo(HttpStatus status, String mensagem) {
+    private @NotNull Map<String, Object> corpo(@NonNull HttpStatus status, @NonNull String mensagem) {
         Map<String, Object> corpo = new HashMap<>();
         corpo.put("timestamp", LocalDateTime.now());
         corpo.put("status", status.value());
