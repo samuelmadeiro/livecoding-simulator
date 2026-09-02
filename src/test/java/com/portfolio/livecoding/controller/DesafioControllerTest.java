@@ -47,6 +47,11 @@ class DesafioControllerTest {
             TipoDesafio.API_REST,
             45,
             "// TODO",
+            "A equipe de vendas precisa listar o catalogo na tela de pedidos.",
+            "Nenhum parametro.",
+            "Lista de produtos em JSON.",
+            "GET /produtos -> [{\"id\":1,\"nome\":\"Teclado\"}]",
+            "Sem paginacao nesta versao.",
             1L,
             "Java");
 

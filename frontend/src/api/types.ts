@@ -24,6 +24,12 @@ export interface Desafio {
   tipo: TipoDesafio;
   tempoLimiteMinutos: number | null;
   templateCodigo: string | null;
+  /* Partes do enunciado. Nulas nos desafios criados antes do enunciado estruturado. */
+  contexto: string | null;
+  formatoEntrada: string | null;
+  formatoSaida: string | null;
+  exemplo: string | null;
+  restricoes: string | null;
   tecnologiaId: number | null;
   tecnologiaNome: string | null;
 }

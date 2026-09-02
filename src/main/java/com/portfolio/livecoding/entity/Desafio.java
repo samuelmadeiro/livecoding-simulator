@@ -52,6 +52,27 @@ public class Desafio {
     @Column(name = "template_codigo", columnDefinition = "TEXT")
     private String templateCodigo;
 
+    /*
+     * Partes do enunciado. Ficam em colunas separadas, e nao dentro de descricao, para que toda
+     * questao seja obrigada a responder as mesmas perguntas: por que isso existe, o que entra, o
+     * que sai, um caso resolvido e o que nao vale. Nulas nos desafios anteriores a V5.
+     */
+
+    @Column(columnDefinition = "TEXT")
+    private String contexto;
+
+    @Column(name = "formato_entrada", columnDefinition = "TEXT")
+    private String formatoEntrada;
+
+    @Column(name = "formato_saida", columnDefinition = "TEXT")
+    private String formatoSaida;
+
+    @Column(columnDefinition = "TEXT")
+    private String exemplo;
+
+    @Column(columnDefinition = "TEXT")
+    private String restricoes;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "tecnologia_id", nullable = false)
     private Tecnologia tecnologia;

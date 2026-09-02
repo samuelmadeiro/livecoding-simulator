@@ -178,6 +178,16 @@ export function DesafioPage() {
 
           <p className="max-w-[var(--medida-texto)] text-tinta-media">{desafio.descricao}</p>
 
+          {/*
+           * As secoes do enunciado. Cada uma so aparece se o desafio tiver aquele campo, porque
+           * as questoes antigas foram criadas antes do enunciado estruturado.
+           */}
+          <SecaoEnunciado titulo="Por que isso aparece numa entrevista" texto={desafio.contexto} />
+          <SecaoEnunciado titulo="O que entra" texto={desafio.formatoEntrada} />
+          <SecaoEnunciado titulo="O que sai" texto={desafio.formatoSaida} />
+          <SecaoEnunciado titulo="Exemplo" texto={desafio.exemplo} monoespacado />
+          <SecaoEnunciado titulo="Restrições" texto={desafio.restricoes} />
+
           {desafio.tempoLimiteMinutos != null ? (
             <p className="flex items-center gap-2 text-sm text-tinta-fraca">
               <Clock aria-hidden="true" size={16} />
@@ -252,5 +262,39 @@ export function DesafioPage() {
         </section>
       </div>
     </div>
+  );
+}
+
+/**
+ * Uma parte do enunciado. Devolve null quando o campo esta vazio, para o desafio antigo nao
+ * mostrar titulo de secao sem conteudo.
+ *
+ * O texto vem do banco com quebras de linha proprias, entao `whitespace-pre-line` preserva o que
+ * foi escrito em vez de colapsar tudo num paragrafo so.
+ */
+function SecaoEnunciado({
+  titulo,
+  texto,
+  monoespacado = false,
+}: {
+  titulo: string;
+  texto: string | null;
+  monoespacado?: boolean;
+}) {
+  if (!texto) {
+    return null;
+  }
+
+  return (
+    <section className="flex flex-col gap-2">
+      <h2 className="text-sm text-tinta">{titulo}</h2>
+      <p
+        className={`max-w-[var(--medida-texto)] whitespace-pre-line text-tinta-media ${
+          monoespacado ? "font-mono text-sm" : ""
+        }`}
+      >
+        {texto}
+      </p>
+    </section>
   );
 }

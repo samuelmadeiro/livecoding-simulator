@@ -12,6 +12,11 @@ public record DesafioResponseDTO(
         TipoDesafio tipo,
         Integer tempoLimiteMinutos,
         String templateCodigo,
+        String contexto,
+        String formatoEntrada,
+        String formatoSaida,
+        String exemplo,
+        String restricoes,
         Long tecnologiaId,
         String tecnologiaNome
 ) {
@@ -25,6 +30,11 @@ public record DesafioResponseDTO(
                 desafio.getTipo(),
                 desafio.getTempoLimiteMinutos(),
                 desafio.getTemplateCodigo(),
+                desafio.getContexto(),
+                desafio.getFormatoEntrada(),
+                desafio.getFormatoSaida(),
+                desafio.getExemplo(),
+                desafio.getRestricoes(),
                 desafio.getTecnologia().getId(),
                 desafio.getTecnologia().getNome()
         );
