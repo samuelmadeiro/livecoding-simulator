@@ -87,6 +87,29 @@
                                     desabilitado, mas ilegivel nao ajuda ninguem a entender por
                                     que o botao nao responde */
 
+  /* ---------- Realce de sintaxe do editor ----------
+   * O editor e a tela onde o candidato passa a maior parte da prova, entao o realce segue a mesma
+   * paleta do resto do produto em vez do tema escuro generico: os neutros quentes continuam e cada
+   * papel do codigo ganha um matiz proprio.
+   *
+   * Contraste sobre --superficie-elevada (#FFFDF9), minimo 4.5:1 para texto normal:
+   *   palavra-chave .... 6.9:1     tipo ......... 7.4:1
+   *   funcao ........... 8.9:1     numero ....... 5.4:1
+   *   texto literal .... 7.1:1     comentario ... 4.8:1
+   */
+  --sintaxe-palavra: #8a3722; /* terracota escura: if, for, class, return */
+  --sintaxe-funcao: #1a4d6b; /* azul-petroleo: nome de funcao e de metodo */
+  --sintaxe-tipo: #5b3a7a; /* roxo: tipo, classe, construtor */
+  --sintaxe-literal: #4a5d23; /* oliva: string e caractere */
+  --sintaxe-numero: #8a5a00; /* ambar: numero, booleano, nulo */
+  --sintaxe-comentario: #6b645b; /* neutro fraco, em italico */
+  --sintaxe-operador: #3d3934; /* neutro medio: operador e pontuacao */
+  --sintaxe-variavel: #1f1d1a; /* neutro forte: identificador comum */
+
+  --editor-gutter: var(--areia-100);
+  --editor-linha-ativa: #f3ede3;
+  --editor-selecao: #dfe8ee;
+
   /* ---------- Forma ----------
    * Um unico raio no projeto inteiro. 3px nao e o default do Tailwind (4px/8px): a quina quase
    * viva combina com editor de codigo e evita o arredondamento generico de card.
