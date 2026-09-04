@@ -19,3 +19,10 @@ frontend/.vite/
 
 # Ferramentas locais
 .claude/
+
+# Ambiente
+# O .env guarda credencial local e fica fora do Git; .env.example e o modelo versionado.
+.env
+.env.local
+frontend/.env
+frontend/.env.local
