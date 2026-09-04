@@ -221,6 +221,7 @@ export function DesafioPage() {
             valor={codigo}
             onMudar={setCodigo}
             desabilitado={enviando}
+            linguagem={desafio.tecnologiaNome}
           />
 
           <div className="flex flex-wrap items-center gap-4">
