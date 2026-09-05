@@ -12,6 +12,8 @@ import java.util.List;
  * @param duracaoSegundos tempo entre abrir o desafio e enviar. Nulo quando nao houve tentativa
  *                        cronometrada.
  * @param entrevistador   o retorno em forma de conversa, com dicas do que ajustar.
+ * @param progresso       pontos e sequencia que esta submissao mexeu, para a tela comemorar sem
+ *                        precisar de uma segunda requisicao.
  */
 public record SubmissaoResponseDTO(
         Long submissaoId,
@@ -21,6 +23,7 @@ public record SubmissaoResponseDTO(
         Integer precisao,
         Integer duracaoSegundos,
         List<CriterioResultadoDTO> criterios,
-        FalaEntrevistadorDTO entrevistador
+        FalaEntrevistadorDTO entrevistador,
+        GanhoProgressoDTO progresso
 ) {
 }

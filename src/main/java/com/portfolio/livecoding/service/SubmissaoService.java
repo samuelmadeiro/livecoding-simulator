@@ -2,6 +2,7 @@ package com.portfolio.livecoding.service;
 
 import com.portfolio.livecoding.dto.CriterioResultadoDTO;
 import com.portfolio.livecoding.dto.FalaEntrevistadorDTO;
+import com.portfolio.livecoding.dto.GanhoProgressoDTO;
 import com.portfolio.livecoding.dto.SubmissaoRequestDTO;
 import com.portfolio.livecoding.dto.SubmissaoResponseDTO;
 import com.portfolio.livecoding.entity.CriterioAvaliacao;
@@ -32,6 +33,7 @@ public class SubmissaoService {
     private final ValidadorCodigoService validadorCodigoService;
     private final FeedbackEntrevistadorService feedbackEntrevistadorService;
     private final TentativaService tentativaService;
+    private final ProgressoService progressoService;
 
     @Transactional
     public SubmissaoResponseDTO registrar(SubmissaoRequestDTO request, String emailUsuario) {
@@ -67,6 +69,11 @@ public class SubmissaoService {
 
         Submissao salva = submissaoRepository.save(submissao);
 
+        // Dentro da mesma transacao da submissao: se a gravacao falhar depois, ninguem fica com
+        // ponto creditado por uma submissao que nao existe.
+        ProgressoService.Ganho ganho = progressoService.registrar(
+                usuario, desafio, resultado.status(), resultado.precisao());
+
         FalaEntrevistadorDTO entrevistador = feedbackEntrevistadorService.gerar(
                 desafio, resultado, duracaoSegundos, usuario.getNome());
 
@@ -78,7 +85,12 @@ public class SubmissaoService {
                 salva.getPrecisao(),
                 salva.getDuracaoSegundos(),
                 resultado.itens().stream().map(this::linhaDeFeedback).toList(),
-                entrevistador);
+                entrevistador,
+                new GanhoProgressoDTO(
+                        ganho.pontosGanhos(),
+                        ganho.primeiraVez(),
+                        ganho.sequenciaAtual(),
+                        ganho.sequenciaCresceu()));
     }
 
     private ResultadoCriterio linhaDeHistorico(ItemAvaliado item) {

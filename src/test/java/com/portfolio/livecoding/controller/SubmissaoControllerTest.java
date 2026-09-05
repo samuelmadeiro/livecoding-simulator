@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.portfolio.livecoding.dto.CriterioResultadoDTO;
+import com.portfolio.livecoding.dto.GanhoProgressoDTO;
 import com.portfolio.livecoding.dto.FalaEntrevistadorDTO;
 import com.portfolio.livecoding.dto.FalaEntrevistadorDTO.AjusteDTO;
 import com.portfolio.livecoding.dto.SubmissaoResponseDTO;
@@ -61,7 +62,8 @@ class SubmissaoControllerTest {
                         100, 100, 320,
                         List.of(new CriterioResultadoDTO("Expoe um endpoint de leitura (GET)", true,
                                 TipoCriterio.OBRIGATORIO, 1, "Marque o metodo com @GetMapping.")),
-                        FALA));
+                        FALA,
+                        new GanhoProgressoDTO(25, true, 3, true)));
 
         String body = "{\"desafioId\": 1, \"codigoEnviado\": \"" + CODIGO_VALIDO + "\"}";
 
@@ -91,7 +93,9 @@ class SubmissaoControllerTest {
                         40, 55, 900,
                         List.of(new CriterioResultadoDTO("Soma o valor dos pedidos", false,
                                 TipoCriterio.PONTUAVEL, 3, "Agregue com SUM na consulta.")),
-                        FALA));
+                        FALA,
+                        // Reprovou: a sequencia do dia cresce, mas nenhum ponto e creditado.
+                        new GanhoProgressoDTO(0, false, 3, true)));
 
         String body = "{\"desafioId\": 1, \"codigoEnviado\": \"" + CODIGO_VALIDO + "\"}";
 
