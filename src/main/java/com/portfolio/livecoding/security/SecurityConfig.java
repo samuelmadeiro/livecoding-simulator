@@ -57,6 +57,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(autho -> autho
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/desafios", "/api/desafios/**").permitAll()
+                        // O ranking abre a home para quem ainda nao tem conta, entao e publico.
+                        // Ele devolve apelido, e nunca nome completo ou e-mail.
+                        .requestMatchers(HttpMethod.GET, "/api/ranking").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
                         // Painel do admin barrado por rota, e nao por if dentro do controller:
                         // endpoint novo sob /api/admin ja nasce protegido.
