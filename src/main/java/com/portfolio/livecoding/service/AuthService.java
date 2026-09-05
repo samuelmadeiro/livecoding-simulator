@@ -25,6 +25,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
+    private final ApelidoService apelidoService;
 
     @Transactional
     public AuthResponseDTO registrar(@NonNull RegistroRequestDTO request) {
@@ -37,6 +38,8 @@ public class AuthService {
         usuario.setEmail(request.email());
         usuario.setSenha(passwordEncoder.encode(request.senha()));
         usuario.setRole(Role.CANDIDATO);
+        // Identidade publica do candidato no ranking, derivada do nome e nunca do e-mail.
+        usuario.setApelido(apelidoService.gerar(request.nome()));
 
         Usuario salvo = usuarioRepository.save(usuario);
 

@@ -32,6 +32,7 @@ public class AdminBootstrap implements CommandLineRunner {
 
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
+    private final com.portfolio.livecoding.service.ApelidoService apelidoService;
 
     @Value("${app.admin.nome:Administrador}")
     private String nome;
@@ -68,6 +69,7 @@ public class AdminBootstrap implements CommandLineRunner {
         admin.setEmail(email);
         admin.setSenha(passwordEncoder.encode(senha));
         admin.setRole(Role.ADMIN);
+        admin.setApelido(apelidoService.gerar(nome));
         usuarioRepository.save(admin);
         log.info("Admin criado: {}", email);
     }

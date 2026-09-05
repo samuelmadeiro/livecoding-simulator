@@ -42,6 +42,7 @@ public class DataLoader implements CommandLineRunner {
         demo.setEmail(EMAIL_DEMO);
         demo.setSenha(passwordEncoder.encode(SENHA_DEMO));
         demo.setRole(Role.CANDIDATO);
+        demo.setApelido("Demo");
         usuarioRepository.save(demo);
     }
 }
