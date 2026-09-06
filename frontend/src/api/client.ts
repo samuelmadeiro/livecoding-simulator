@@ -3,6 +3,8 @@ import type {
   Desafio,
   FiltroDesafios,
   PainelAdmin,
+  Progresso,
+  RankingItem,
   Submissao,
   Tentativa,
 } from "./types";
@@ -144,5 +146,14 @@ export const api = {
 
   buscarPainelAdmin(token: string): Promise<PainelAdmin> {
     return requisitar<PainelAdmin>("/api/admin/metricas", {}, token);
+  },
+
+  /** Ranking público: sem token, porque a home mostra ele para quem ainda não tem conta. */
+  buscarRanking(): Promise<RankingItem[]> {
+    return requisitar<RankingItem[]>("/api/ranking");
+  },
+
+  buscarProgresso(token: string): Promise<Progresso> {
+    return requisitar<Progresso>("/api/progresso", {}, token);
   },
 };

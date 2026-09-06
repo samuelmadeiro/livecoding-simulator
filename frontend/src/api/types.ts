@@ -92,6 +92,8 @@ export interface Submissao {
   duracaoSegundos: number | null;
   criterios: CriterioResultado[];
   entrevistador: FalaEntrevistador | null;
+  /** Pontos e sequência que esta submissão mexeu. Nulo em submissões anteriores à gamificação. */
+  progresso: GanhoProgresso | null;
 }
 
 export interface FiltroDesafios {
@@ -201,3 +203,50 @@ export const ROTULO_CRITERIO: Record<TipoCriterio, string> = {
   PONTUAVEL: "Vale ponto",
   PROIBIDO: "Não pode aparecer",
 };
+
+/* ---------- Progresso e ranking ---------- */
+
+/** Uma linha do ranking público. Traz apelido, nunca nome completo ou e-mail. */
+export interface RankingItem {
+  posicao: number;
+  apelido: string;
+  pontos: number;
+  sequenciaAtual: number;
+  questoesResolvidas: number;
+}
+
+export interface ConquistaResumo {
+  desafioId: number;
+  titulo: string;
+  tecnologia: string;
+  nivel: NivelVaga;
+  pontos: number;
+  precisao: number;
+  conquistadoEm: string;
+}
+
+/** O progresso do candidato logado, como o painel dele mostra. */
+export interface Progresso {
+  apelido: string;
+  pontos: number;
+  sequenciaAtual: number;
+  sequenciaRecorde: number;
+  ultimoDiaPraticado: string | null;
+  praticouHoje: boolean;
+  questoesResolvidas: number;
+  questoesDisponiveis: number;
+  /** Nulo enquanto a pessoa não pontuou: sem pontos não há posição. */
+  posicaoNoRanking: number | null;
+  ultimasConquistas: ConquistaResumo[];
+}
+
+/**
+ * O que a submissão mexeu no progresso. `primeiraVez` distingue a questão recém-conquistada da
+ * refeita: refazer não paga de novo, e a tela precisa dizer isso.
+ */
+export interface GanhoProgresso {
+  pontosGanhos: number;
+  primeiraVez: boolean;
+  sequenciaAtual: number;
+  sequenciaCresceu: boolean;
+}
