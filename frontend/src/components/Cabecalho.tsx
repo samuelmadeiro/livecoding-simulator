@@ -3,6 +3,13 @@ import { Link, NavLink } from "react-router-dom";
 import { useAuth } from "../auth/useAuth";
 import { Botao } from "./Botao";
 
+/* O item ativo se distingue por peso e sublinhado, e nao so por cor. */
+const estiloDoLink = ({ isActive }: { isActive: boolean }) =>
+  "rounded-padrao px-3 py-2 text-sm " +
+  (isActive
+    ? "font-medium text-acento underline decoration-2 underline-offset-8"
+    : "text-tinta-media hover:text-tinta");
+
 export function Cabecalho() {
   const { sessao, autenticado, admin, sair } = useAuth();
 
@@ -17,30 +24,20 @@ export function Cabecalho() {
         </Link>
 
         <nav aria-label="Navegação principal" className="flex items-center gap-2">
-          <NavLink
-            to="/"
-            end
-            className={({ isActive }) =>
-              "rounded-padrao px-3 py-2 text-sm " +
-              (isActive
-                ? "font-medium text-acento underline decoration-2 underline-offset-8"
-                : "text-tinta-media hover:text-tinta")
-            }
-          >
+          {/* Só quem entrou tem progresso para ver: para visitante, o link levaria a um redirect. */}
+          {autenticado ? (
+            <NavLink to="/painel" className={estiloDoLink}>
+              Meu progresso
+            </NavLink>
+          ) : null}
+
+          <NavLink to="/desafios" className={estiloDoLink}>
             Desafios
           </NavLink>
 
           {admin ? (
-            <NavLink
-              to="/admin"
-              className={({ isActive }) =>
-                "rounded-padrao px-3 py-2 text-sm " +
-                (isActive
-                  ? "font-medium text-acento underline decoration-2 underline-offset-8"
-                  : "text-tinta-media hover:text-tinta")
-              }
-            >
-              Painel
+            <NavLink to="/admin" className={estiloDoLink}>
+              Administração
             </NavLink>
           ) : null}
 

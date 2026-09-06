@@ -5,7 +5,9 @@ import { Cabecalho } from "./components/Cabecalho";
 import { AdminPage } from "./pages/AdminPage";
 import { CatalogoPage } from "./pages/CatalogoPage";
 import { DesafioPage } from "./pages/DesafioPage";
+import { LandingPage } from "./pages/LandingPage";
 import { LoginPage } from "./pages/LoginPage";
+import { PainelPage } from "./pages/PainelPage";
 import { RegistroPage } from "./pages/RegistroPage";
 
 export default function App() {
@@ -19,7 +21,14 @@ export default function App() {
       <Cabecalho />
 
       <Routes>
-        <Route path="/" element={<CatalogoPage />} />
+        {/*
+          A raiz decide sozinha para quem serve: a LandingPage manda quem ja entrou para o painel,
+          e mostra a apresentacao para quem ainda nao tem conta. O catalogo saiu da raiz e ganhou
+          endereco proprio, porque agora ele e uma etapa do fluxo e nao a porta de entrada.
+        */}
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/painel" element={<PainelPage />} />
+        <Route path="/desafios" element={<CatalogoPage />} />
         <Route path="/desafios/:id" element={<DesafioPage />} />
         <Route path="/entrar" element={<LoginPage />} />
         <Route path="/cadastrar" element={<RegistroPage />} />
