@@ -2,6 +2,7 @@ import { Clock } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ROTULO_NIVEL, ROTULO_TIPO, type Desafio } from "../api/types";
 import { Etiqueta } from "./Etiqueta";
+import { EtiquetaDificuldade } from "./EtiquetaDificuldade";
 
 /*
  * O card inteiro nao e clicavel: so o titulo e link. Card-link engole o texto para quem navega
@@ -12,6 +13,7 @@ export function DesafioCard({ desafio }: { desafio: Desafio }) {
     <article className="flex flex-col gap-4 border border-borda bg-elevada p-6 rounded-padrao">
       <div className="flex flex-wrap items-center gap-2">
         <Etiqueta tom="acento">{ROTULO_NIVEL[desafio.nivel]}</Etiqueta>
+        <EtiquetaDificuldade dificuldade={desafio.dificuldade} />
         <Etiqueta>{ROTULO_TIPO[desafio.tipo]}</Etiqueta>
         {desafio.tecnologiaNome ? <Etiqueta>{desafio.tecnologiaNome}</Etiqueta> : null}
       </div>

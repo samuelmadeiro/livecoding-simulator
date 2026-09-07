@@ -6,32 +6,23 @@ uma correção automática simulada.
 
 Projeto de portfólio focado em vagas de Estágio / Júnior back-end.
 
-## Stack
-
-- Java 21
-- Spring Boot 3.3.4 (Web, Data JPA, Validation, Security)
-- JWT via jjwt 0.12.6, senhas em BCrypt
-- H2 em memória (dev/test) e PostgreSQL, ambos com o mesmo schema e seed via Flyway
-- Lombok
-- JUnit 5 + Mockito + MockMvc
-- Maven Wrapper
-- Front-end em React 19 + TypeScript + Tailwind v4 (pasta `frontend/`)
-
 ## Como rodar
 
 Passo a passo completo para Windows (pré-requisitos, PowerShell, troubleshooting):
-[EXECUTANDO.md](EXECUTANDO.md).
+[EXECUTANDO.md](EXECUTANDO.md). No PowerShell o wrapper é `.\mvnw.cmd` e os argumentos `-D...`
+precisam das aspas mostradas aqui: sem elas o PowerShell parte o argumento no hífen de
+`spring-boot` e o Maven falha com `Unknown lifecycle phase ".run.profiles=prod"`.
 
 ```bash
 ./mvnw spring-boot:run
 ```
 
 A aplicação sobe em `http://localhost:8080`. As migrations do Flyway criam o schema e o catálogo
-— 4 tecnologias, 14 desafios e os critérios de correção de cada um — e o `DataLoader` cria o
+— 3 tecnologias, 255 desafios e os critérios de correção de cada um — e o `DataLoader` cria o
 usuário demo.
 
 Para um PostgreSQL de verdade, com as tabelas gravadas em disco:
-`./mvnw spring-boot:run -Dspring-boot.run.profiles=pg` (detalhes em [EXECUTANDO.md](EXECUTANDO.md)).
+`./mvnw spring-boot:run "-Dspring-boot.run.profiles=pg"` (detalhes em [EXECUTANDO.md](EXECUTANDO.md)).
 
 Credenciais do usuário demo: `demo@livecoding.dev` / `demo12345`.
 Credenciais do admin em desenvolvimento: `admin@livecoding.dev` / `admin12345` (configuráveis por
@@ -46,19 +37,33 @@ Rodar os testes:
 ./mvnw test
 ```
 
-Rodar contra PostgreSQL:
+Rodar no perfil `prod` (PostgreSQL, sem usuário demo):
 
 ```bash
-./mvnw spring-boot:run -Dspring-boot.run.profiles=prod
+./mvnw spring-boot:run "-Dspring-boot.run.profiles=prod"
 ```
 
-Configurável por variáveis de ambiente `DB_URL`, `DB_USER`, `DB_PASSWORD`.
+Exige `JWT_SECRET` no ambiente: `application-prod.properties` não tem default e a aplicação não
+sobe sem essa variável. O banco é configurável por `DB_URL`, `DB_USER` e `DB_PASSWORD`.
+
+## Stack
+
+- Java 21
+- Spring Boot 3.3.4 (Web, Data JPA, Validation, Security)
+- JWT via jjwt 0.12.6, senhas em BCrypt
+- H2 em memória (dev/test) e PostgreSQL, ambos com o mesmo schema e seed via Flyway
+- Lombok
+- JUnit 5 + Mockito + MockMvc
+- Maven Wrapper
+- Front-end em React 19 + TypeScript + Tailwind v4 (pasta `frontend/`)
 
 ## Front-end
 
-A pasta [`frontend/`](frontend/) tem a interface que consome esta API: catalogo filtravel, editor
-de codigo com cronometro, correcao na tela com o retorno do entrevistador e, para quem entra com
-uma conta `ADMIN`, a pagina `/admin` com o painel de metricas. Com o back-end no ar:
+A pasta [`frontend/`](frontend/) tem a interface que consome esta API: catalogo filtravel e
+paginado (o filtro, a ordem e a pagina vivem na URL, entao o endereco pode ser recarregado e
+enviado para outra pessoa), editor de codigo com cronometro, correcao na tela com o retorno do
+entrevistador e, para quem entra com uma conta `ADMIN`, a pagina `/admin` com o painel de metricas.
+Com o back-end no ar:
 
 ```bash
 cd frontend && npm install && npm run dev
@@ -73,11 +78,43 @@ design e as limitacoes conhecidas estao no [README do front](frontend/README.md)
 |---|---|---|---|
 | POST | `/api/auth/register` | público | Cadastra o candidato e já devolve o token |
 | POST | `/api/auth/login` | público | Autentica e devolve o token |
-| GET | `/api/desafios` | público | Lista desafios. Query params opcionais: `nivel`, `tecnologiaId`, `tipo` |
+| GET | `/api/desafios` | público | Uma página do catálogo, filtrada e ordenada. Parâmetros na seção abaixo |
 | GET | `/api/desafios/{id}` | público | Detalha um desafio, incluindo o template de código |
+| GET | `/api/tecnologias` | público | Vocabulário do filtro de tecnologia |
 | POST | `/api/desafios/{id}/iniciar` | **JWT** | Abre (ou recupera) o cronômetro da questão |
 | POST | `/api/submissoes` | **JWT** | Recebe o código do candidato, corrige e persiste a submissão |
 | GET | `/api/admin/metricas` | **JWT + ADMIN** | Painel: tempo e % de acerto por candidato, precisão por exercício |
+
+### Catálogo: filtro, ordem e página
+
+São 255 desafios, então `GET /api/desafios` devolve uma página — nunca a lista inteira. Todos os
+parâmetros são opcionais:
+
+| Parâmetro | Valores | Padrão |
+|---|---|---|
+| `nivel` | `ESTAGIO`, `JUNIOR`, `PLENO`, `SENIOR` | sem filtro |
+| `dificuldade` | `FACIL`, `MEDIO`, `DIFICIL` | sem filtro |
+| `tipo` | `API_REST`, `ALGORITMO_EASY`, `BANCO_DADOS` | sem filtro |
+| `tecnologiaId` | um id de `/api/tecnologias` | sem filtro |
+| `ordenar` | `PADRAO`, `DIFICULDADE_CRESCENTE`, `DIFICULDADE_DECRESCENTE`, `TITULO`, `TEMPO_CRESCENTE`, `TEMPO_DECRESCENTE` | `PADRAO` |
+| `pagina` | índice começando em zero | `0` |
+| `tamanho` | 1 a 48 | `9` |
+
+A resposta é a fatia mais os metadados dela:
+
+```json
+{ "conteudo": [], "pagina": 0, "tamanho": 9, "totalItens": 255,
+  "totalPaginas": 29, "primeira": true, "ultima": false }
+```
+
+`totalItens` conta o filtro inteiro, e não a página. Enum desconhecido em qualquer desses
+parâmetros devolve 400 com a lista do que é aceito; já `pagina` e `tamanho` fora da faixa são
+corrigidos em vez de recusados, porque um link antigo não deve virar erro na cara de quem clicou.
+
+**Nível e dificuldade são eixos separados.** Nível diz para qual vaga a questão serve; dificuldade,
+quanto ela cobra. A dificuldade inicial de cada questão saiu do tempo limite comparado com as
+outras do mesmo nível (migration `V22`), e é ajustável questão a questão por `UPDATE` — a coluna
+não é derivada de nada em tempo de leitura.
 
 ### Autenticação
 
@@ -100,6 +137,7 @@ O perfil `prod` não tem default — a aplicação não sobe sem ela. Expiraçã
 ### Enums
 
 - `NivelVaga`: `ESTAGIO`, `JUNIOR`, `PLENO`, `SENIOR`
+- `Dificuldade`: `FACIL`, `MEDIO`, `DIFICIL` — cada constante carrega um peso, que é o que ordena
 - `TipoDesafio`: `API_REST`, `ALGORITMO_EASY`, `BANCO_DADOS`
 - `StatusSubmissao`: `PENDENTE`, `APROVADO`, `ERRO_COMPILACAO`, `ERRO_TESTE`
 - `TipoCriterio`: `OBRIGATORIO`, `PONTUAVEL`, `PROIBIDO`
@@ -125,6 +163,24 @@ Filtrar por nível e tipo:
 
 ```bash
 curl "http://localhost:8080/api/desafios?nivel=ESTAGIO&tipo=ALGORITMO_EASY"
+```
+
+Segunda página das questões difíceis, da mais demorada para a mais rápida:
+
+```bash
+curl "http://localhost:8080/api/desafios?dificuldade=DIFICIL&ordenar=TEMPO_DECRESCENTE&pagina=1&tamanho=5"
+```
+
+Vocabulário do filtro de tecnologia:
+
+```bash
+curl http://localhost:8080/api/tecnologias
+```
+
+Ordenação inexistente (400, com a lista do que vale):
+
+```bash
+curl -i "http://localhost:8080/api/desafios?ordenar=POR_SORTE"
 ```
 
 Desafio inexistente (404 do `GlobalExceptionHandler`):
@@ -215,8 +271,13 @@ com.portfolio.livecoding
 
 Pontos de destaque:
 
-- `DesafioRepository.buscarComFiltros` resolve os três filtros opcionais em uma única JPQL
-  (`:param IS NULL OR ...`) com `JOIN FETCH` na tecnologia, evitando N+1.
+- `DesafioEspecificacao` resolve filtro, ordem e página numa consulta só: filtro nulo não entra no
+  `WHERE`, a tecnologia vem por `JOIN FETCH` no mesmo SELECT (sem N+1) e o `ORDER BY` de
+  dificuldade sai de um `CASE` com o peso do enum — ordenar pelo texto gravado devolveria `DIFICIL,
+  FACIL, MEDIO`, que é alfabético e não progressivo. O `COUNT` da paginação reaproveita a mesma
+  Specification sem o fetch e sem o `ORDER BY`. Toda ordenação desempata por `id`: sem isso, duas
+  questões de mesmo título ou mesmo tempo podem trocar de lugar entre uma página e outra, e a mesma
+  questão apareceria duas vezes — ou nenhuma.
 - `ValidadorCodigoService` isola a correção. Aplica as checagens estruturais (tamanho mínimo,
   chaves e parênteses balanceados, código igual — ou quase igual — ao template, ausência de corpo
   de método/função/consulta) e depois avalia os critérios que o desafio tem cadastrados na tabela

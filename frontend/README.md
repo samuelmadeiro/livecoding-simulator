@@ -1,8 +1,8 @@
 # Front-end do LiveCoding Simulator
 
 SPA em React 19 + TypeScript + Tailwind v4 sobre a API do projeto. Cobre o fluxo do candidato —
-catálogo filtrável, leitura do enunciado, escrita da solução cronometrada, envio autenticado e
-correção com o retorno do entrevistador — e o painel de quem administra, em `/admin`.
+catálogo filtrável e paginado, leitura do enunciado, escrita da solução cronometrada, envio
+autenticado e correção com o retorno do entrevistador — e o painel de quem administra, em `/admin`.
 
 ## Rodar
 
@@ -36,6 +36,15 @@ como ferramenta de trabalho, não como página de captura:
   Tailwind.
 - **Layout assimétrico:** filtros em trilho à esquerda e lista à direita no catálogo; enunciado e
   editor lado a lado no desafio.
+- **Nível e dificuldade são dois filtros, não um.** Nível diz para qual vaga a questão serve;
+  dificuldade, quanto ela cobra. Com um eixo só, quem estuda para júnior não consegue pedir as
+  questões leves daquele nível antes das pesadas.
+- **O catálogo não cabe numa tela.** São 255 questões: a lista vem de nove em nove, com ordenação
+  escolhida na própria tela (dificuldade, título ou tempo).
+- **Filtro, ordem e página moram na URL.** `?nivel=JUNIOR&dificuldade=FACIL&pagina=2` sobrevive ao
+  F5, volta com o botão de voltar do navegador e pode ser enviado como link. O que vem da URL é
+  tratado como entrada de fora: valor fora do vocabulário do catálogo é ignorado, e não repassado
+  à API. Filtro novo recomeça na primeira página, e página que não existe mais cai na última.
 - **Cronômetro do servidor.** O relógio da questão parte do tempo devolvido por
   `POST /api/desafios/{id}/iniciar` e só corre na tela — recarregar a página não devolve tempo.
 - **Duas medidas, não uma.** A correção mostra nota e precisão lado a lado, porque respondem
@@ -56,7 +65,11 @@ Verificado com axe-core nas telas do candidato, sem violações. Além disso:
 - Fluxo completo por teclado, com ordem de Tab igual à ordem visual e link para pular a navegação.
 - No editor, Tab indenta e **Escape libera o foco** — a saída aparece na tela, não só no código.
 - O resultado da correção é anunciado em região viva e recebe o foco quando chega.
-- Status nunca depende só de cor: sempre com ícone e rótulo.
+- Status nunca depende só de cor: sempre com ícone e rótulo. A etiqueta de dificuldade escreve
+  Fácil, Média ou Difícil por extenso — verde, âmbar e vermelho só reforçam.
+- A paginação é um `<nav>` rotulado; o número da página atual carrega `aria-current="page"`, e a
+  contagem ("255 desafios encontrados · página 2 de 29") fica em região viva, então a troca de
+  página é anunciada sem que ninguém precise procurar o que mudou.
 
 Em desenvolvimento, o axe-core roda a cada render e reporta violações no console.
 

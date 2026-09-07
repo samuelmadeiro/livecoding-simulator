@@ -1,18 +1,17 @@
 import {
+  DIFICULDADES,
   NIVEIS,
+  ROTULO_DIFICULDADE,
   ROTULO_NIVEL,
   ROTULO_TIPO,
   TIPOS,
+  type Dificuldade,
   type FiltroDesafios,
   type NivelVaga,
+  type Tecnologia,
   type TipoDesafio,
 } from "../api/types";
 import { Botao } from "./Botao";
-
-export interface Tecnologia {
-  id: number;
-  nome: string;
-}
 
 interface Props {
   filtro: FiltroDesafios;
@@ -24,9 +23,14 @@ interface Props {
  * Filtros como grupos de radio, nao select: sao poucos valores e todos cabem na tela, entao o
  * candidato ve o vocabulario inteiro do catalogo sem abrir nada. Radio tambem ja vem com
  * navegacao por seta e anuncio de grupo pelo leitor de tela.
+ *
+ * Nivel e dificuldade sao grupos separados porque respondem perguntas diferentes: um diz para qual
+ * vaga a questao serve, o outro quanto ela cobra. Com um eixo so, quem estuda para junior nao
+ * consegue pedir as questoes leves daquele nivel antes das pesadas.
  */
 export function FiltroTrilho({ filtro, tecnologias, onMudar }: Props) {
-  const limpo = !filtro.nivel && !filtro.tipo && filtro.tecnologiaId == null;
+  const limpo =
+    !filtro.nivel && !filtro.tipo && !filtro.dificuldade && filtro.tecnologiaId == null;
 
   /* <section> rotulada, nao <aside>: o trilho vive dentro do <main> do catalogo, e um
    * complementary aninhado no main confunde a lista de landmarks do leitor de tela. */
@@ -50,6 +54,16 @@ export function FiltroTrilho({ filtro, tecnologias, onMudar }: Props) {
         opcoes={NIVEIS.map((n) => ({ valor: n, rotulo: ROTULO_NIVEL[n] }))}
         onEscolher={(valor) =>
           onMudar({ ...filtro, nivel: (valor || undefined) as NivelVaga | undefined })
+        }
+      />
+
+      <Grupo
+        legenda="Dificuldade"
+        nome="dificuldade"
+        valor={filtro.dificuldade ?? ""}
+        opcoes={DIFICULDADES.map((d) => ({ valor: d, rotulo: ROTULO_DIFICULDADE[d] }))}
+        onEscolher={(valor) =>
+          onMudar({ ...filtro, dificuldade: (valor || undefined) as Dificuldade | undefined })
         }
       />
 

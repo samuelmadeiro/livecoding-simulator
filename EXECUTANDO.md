@@ -102,16 +102,23 @@ WHERE d.titulo = 'CRUD de Produtos';
 Os exemplos `curl` do README são para bash. No PowerShell, `curl` é apelido de `Invoke-WebRequest` e
 não aceita `-H` / `-d` — use `Invoke-RestMethod`.
 
-Listar os desafios (rota pública):
+Listar os desafios (rota pública). A resposta é uma página: os itens ficam em `conteudo`, e o
+catálogo inteiro é contado em `totalItens`.
 
 ```powershell
-Invoke-RestMethod http://localhost:8080/api/desafios
+Invoke-RestMethod http://localhost:8080/api/desafios | Select-Object pagina, totalItens, totalPaginas
 ```
 
-Filtrar:
+Ver os títulos da página:
 
 ```powershell
-Invoke-RestMethod "http://localhost:8080/api/desafios?nivel=ESTAGIO&tipo=ALGORITMO_EASY"
+(Invoke-RestMethod http://localhost:8080/api/desafios).conteudo | Select-Object titulo, nivel, dificuldade
+```
+
+Filtrar, ordenar e escolher a fatia (parâmetros na seção "Catálogo" do [README](README.md)):
+
+```powershell
+Invoke-RestMethod "http://localhost:8080/api/desafios?nivel=ESTAGIO&tipo=ALGORITMO_EASY&dificuldade=FACIL&ordenar=TEMPO_CRESCENTE&pagina=1&tamanho=5"
 ```
 
 Login com o usuário demo, guardando o token:

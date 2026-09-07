@@ -1,6 +1,7 @@
 package com.portfolio.livecoding.dto;
 
 import com.portfolio.livecoding.entity.Desafio;
+import com.portfolio.livecoding.enums.Dificuldade;
 import com.portfolio.livecoding.enums.NivelVaga;
 import com.portfolio.livecoding.enums.TipoDesafio;
 
@@ -9,6 +10,7 @@ public record DesafioResponseDTO(
         String titulo,
         String descricao,
         NivelVaga nivel,
+        Dificuldade dificuldade,
         TipoDesafio tipo,
         Integer tempoLimiteMinutos,
         String templateCodigo,
@@ -27,6 +29,7 @@ public record DesafioResponseDTO(
                 desafio.getTitulo(),
                 desafio.getDescricao(),
                 desafio.getNivel(),
+                desafio.getDificuldade(),
                 desafio.getTipo(),
                 desafio.getTempoLimiteMinutos(),
                 desafio.getTemplateCodigo(),

@@ -57,6 +57,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(autho -> autho
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/desafios", "/api/desafios/**").permitAll()
+                        // O filtro do catalogo precisa do vocabulario de tecnologias, e o catalogo e publico.
+                        .requestMatchers(HttpMethod.GET, "/api/tecnologias").permitAll()
                         // O ranking abre a home para quem ainda nao tem conta, entao e publico.
                         // Ele devolve apelido, e nunca nome completo ou e-mail.
                         .requestMatchers(HttpMethod.GET, "/api/ranking").permitAll()

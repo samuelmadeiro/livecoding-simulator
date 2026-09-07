@@ -1,32 +1,20 @@
 package com.portfolio.livecoding.repository;
 
 import com.portfolio.livecoding.entity.Desafio;
-import com.portfolio.livecoding.enums.NivelVaga;
 import com.portfolio.livecoding.enums.StatusSubmissao;
-import com.portfolio.livecoding.enums.TipoDesafio;
 import com.portfolio.livecoding.repository.projecao.MetricaDesafioProjecao;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface DesafioRepository extends JpaRepository<Desafio, Long> {
-
-    /**
-     * Busca com filtros opcionais: qualquer parametro null e ignorado.
-     * O join fetch evita N+1 ao montar o DesafioResponseDTO.
-     */
-    @Query("""
-            SELECT d FROM Desafio d
-            JOIN FETCH d.tecnologia t
-            WHERE (:nivel IS NULL OR d.nivel = :nivel)
-              AND (:tecnologiaId IS NULL OR t.id = :tecnologiaId)
-              AND (:tipo IS NULL OR d.tipo = :tipo)
-            ORDER BY d.id
-            """)
-    List<Desafio> buscarComFiltros(@Param("nivel") NivelVaga nivel,
-                                   @Param("tecnologiaId") Long tecnologiaId,
-                                   @Param("tipo") TipoDesafio tipo);
+/**
+ * A busca do catalogo nao mora aqui: filtros opcionais, ordenacao escolhida pelo cliente e
+ * paginacao viram uma Specification (ver DesafioEspecificacao), que o JpaSpecificationExecutor
+ * executa.
+ */
+public interface DesafioRepository extends JpaRepository<Desafio, Long>, JpaSpecificationExecutor<Desafio> {
 
     /**
      * Uma linha por desafio para o painel do admin. LEFT JOIN mantem no relatorio o desafio que
