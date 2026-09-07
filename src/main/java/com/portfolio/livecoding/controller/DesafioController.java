@@ -2,12 +2,14 @@ package com.portfolio.livecoding.controller;
 
 import com.portfolio.livecoding.dto.DesafioFiltroDTO;
 import com.portfolio.livecoding.dto.DesafioResponseDTO;
+import com.portfolio.livecoding.dto.PaginaDTO;
 import com.portfolio.livecoding.dto.TentativaResponseDTO;
+import com.portfolio.livecoding.enums.Dificuldade;
 import com.portfolio.livecoding.enums.NivelVaga;
+import com.portfolio.livecoding.enums.OrdemDesafios;
 import com.portfolio.livecoding.enums.TipoDesafio;
 import com.portfolio.livecoding.service.DesafioService;
 import com.portfolio.livecoding.service.TentativaService;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.http.ResponseEntity;
@@ -28,15 +30,28 @@ public class DesafioController {
     private final DesafioService desafioService;
     private final TentativaService tentativaService;
 
-    /** GET /api/desafios?nivel=JUNIOR&tecnologiaId=1&tipo=API_REST — todos os filtros opcionais. */
+    /**
+     * GET /api/desafios?nivel=JUNIOR&dificuldade=FACIL&tecnologiaId=1&tipo=API_REST
+     * &ordenar=DIFICULDADE_CRESCENTE&pagina=0&tamanho=9
+     *
+     * <p>Todos os parametros sao opcionais. A resposta e uma pagina, nao a lista inteira: o
+     * catalogo cresce a cada migration de conteudo e a tela nao deve crescer junto.
+     *
+     * <p>O tamanho padrao e repetido como literal porque defaultValue exige constante de
+     * compilacao; o teto e a correcao de valores fora da faixa ficam em DesafioService.
+     */
     @GetMapping
-    public ResponseEntity<List<DesafioResponseDTO>> listar(
+    public ResponseEntity<PaginaDTO<DesafioResponseDTO>> listar(
             @RequestParam(required = false) NivelVaga nivel,
             @RequestParam(required = false) Long tecnologiaId,
-            @RequestParam(required = false) TipoDesafio tipo) {
+            @RequestParam(required = false) TipoDesafio tipo,
+            @RequestParam(required = false) Dificuldade dificuldade,
+            @RequestParam(defaultValue = "PADRAO") OrdemDesafios ordenar,
+            @RequestParam(defaultValue = "0") int pagina,
+            @RequestParam(defaultValue = "9") int tamanho) {
 
-        DesafioFiltroDTO filtro = new DesafioFiltroDTO(nivel, tecnologiaId, tipo);
-        return ResponseEntity.ok(desafioService.listar(filtro));
+        DesafioFiltroDTO filtro = new DesafioFiltroDTO(nivel, tecnologiaId, tipo, dificuldade);
+        return ResponseEntity.ok(desafioService.listar(filtro, ordenar, pagina, tamanho));
     }
 
     @GetMapping("/{id}")

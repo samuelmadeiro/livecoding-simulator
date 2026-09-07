@@ -2,14 +2,18 @@ package com.portfolio.livecoding.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.portfolio.livecoding.dto.DesafioFiltroDTO;
+import com.portfolio.livecoding.dto.DesafioResponseDTO;
+import com.portfolio.livecoding.dto.PaginaDTO;
 import com.portfolio.livecoding.entity.Desafio;
 import com.portfolio.livecoding.entity.Tecnologia;
+import com.portfolio.livecoding.enums.Dificuldade;
 import com.portfolio.livecoding.enums.NivelVaga;
+import com.portfolio.livecoding.enums.OrdemDesafios;
 import com.portfolio.livecoding.enums.TipoDesafio;
 import com.portfolio.livecoding.exception.RecursoNaoEncontradoException;
 import com.portfolio.livecoding.repository.DesafioRepository;
@@ -19,9 +23,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 
 @ExtendWith(MockitoExtension.class)
 class DesafioServiceTest {
@@ -34,6 +43,8 @@ class DesafioServiceTest {
 
     private Desafio desafio;
 
+    private static final DesafioFiltroDTO SEM_FILTRO = new DesafioFiltroDTO(null, null, null, null);
+
     @BeforeEach
     void setUp() {
         Tecnologia java = new Tecnologia();
@@ -45,36 +56,65 @@ class DesafioServiceTest {
         desafio.setTitulo("CRUD de Produtos");
         desafio.setDescricao("Implemente o endpoint GET /produtos.");
         desafio.setNivel(NivelVaga.JUNIOR);
+        desafio.setDificuldade(Dificuldade.MEDIO);
         desafio.setTipo(TipoDesafio.API_REST);
         desafio.setTempoLimiteMinutos(45);
         desafio.setTemplateCodigo("// TODO");
         desafio.setTecnologia(java);
     }
 
-    @Test
-    @DisplayName("listar sem filtros repassa nulls ao repository e mapeia para DTO")
-    void listarSemFiltros() {
-        when(desafioRepository.buscarComFiltros(isNull(), isNull(), isNull()))
-                .thenReturn(List.of(desafio));
-
-        List<com.portfolio.livecoding.dto.DesafioResponseDTO> resultado =
-                desafioService.listar(new DesafioFiltroDTO(null, null, null));
-
-        assertThat(resultado).hasSize(1);
-        assertThat(resultado.getFirst().id()).isEqualTo(10L);
-        assertThat(resultado.getFirst().tecnologiaNome()).isEqualTo("Java");
-        assertThat(resultado.getFirst().templateCodigo()).isEqualTo("// TODO");
+    private void repositorioDevolveUmDesafio(int pagina, int tamanho, long total) {
+        when(desafioRepository.findAll(any(Specification.class), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(desafio), PageRequest.of(pagina, tamanho), total));
     }
 
     @Test
-    @DisplayName("listar com filtros repassa cada campo do DesafioFiltroDTO")
-    void listarComFiltros() {
-        DesafioFiltroDTO filtro = new DesafioFiltroDTO(NivelVaga.JUNIOR, 1L, TipoDesafio.API_REST);
-        when(desafioRepository.buscarComFiltros(NivelVaga.JUNIOR, 1L, TipoDesafio.API_REST))
-                .thenReturn(List.of(desafio));
+    @DisplayName("listar mapeia a pagina de entidades para a pagina de DTOs")
+    void listarMapeiaPagina() {
+        repositorioDevolveUmDesafio(0, 9, 1);
 
-        assertThat(desafioService.listar(filtro)).hasSize(1);
-        verify(desafioRepository).buscarComFiltros(NivelVaga.JUNIOR, 1L, TipoDesafio.API_REST);
+        PaginaDTO<DesafioResponseDTO> pagina =
+                desafioService.listar(SEM_FILTRO, OrdemDesafios.PADRAO, 0, 9);
+
+        assertThat(pagina.conteudo()).hasSize(1);
+        assertThat(pagina.conteudo().getFirst().id()).isEqualTo(10L);
+        assertThat(pagina.conteudo().getFirst().tecnologiaNome()).isEqualTo("Java");
+        assertThat(pagina.conteudo().getFirst().dificuldade()).isEqualTo(Dificuldade.MEDIO);
+        assertThat(pagina.totalItens()).isEqualTo(1);
+        assertThat(pagina.primeira()).isTrue();
+        assertThat(pagina.ultima()).isTrue();
+    }
+
+    @Test
+    @DisplayName("listar pede a pagina sem Sort, para nao sobrescrever o ORDER BY da Specification")
+    void listarNaoOrdenaPeloPageable() {
+        repositorioDevolveUmDesafio(1, 9, 20);
+
+        desafioService.listar(SEM_FILTRO, OrdemDesafios.DIFICULDADE_CRESCENTE, 1, 9);
+
+        assertThat(pageableUsado().getSort().isSorted()).isFalse();
+    }
+
+    @Test
+    @DisplayName("tamanho acima do teto e cortado, e nao rejeitado")
+    void tamanhoAcimaDoTeto() {
+        repositorioDevolveUmDesafio(0, DesafioService.TAMANHO_MAXIMO, 100);
+
+        desafioService.listar(SEM_FILTRO, OrdemDesafios.PADRAO, 0, 10_000);
+
+        assertThat(pageableUsado().getPageSize()).isEqualTo(DesafioService.TAMANHO_MAXIMO);
+    }
+
+    @Test
+    @DisplayName("tamanho zero ou negativo cai no padrao e pagina negativa vira a primeira")
+    void faixaInvalidaEhCorrigida() {
+        repositorioDevolveUmDesafio(0, DesafioService.TAMANHO_PADRAO, 1);
+
+        desafioService.listar(SEM_FILTRO, OrdemDesafios.PADRAO, -3, 0);
+
+        Pageable usado = pageableUsado();
+        assertThat(usado.getPageNumber()).isZero();
+        assertThat(usado.getPageSize()).isEqualTo(DesafioService.TAMANHO_PADRAO);
     }
 
     @Test
@@ -93,5 +133,12 @@ class DesafioServiceTest {
         assertThatThrownBy(() -> desafioService.buscarPorId(999L))
                 .isInstanceOf(RecursoNaoEncontradoException.class)
                 .hasMessageContaining("999");
+    }
+
+    @SuppressWarnings("unchecked")
+    private Pageable pageableUsado() {
+        ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
+        verify(desafioRepository).findAll(any(Specification.class), captor.capture());
+        return captor.getValue();
     }
 }

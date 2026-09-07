@@ -1,5 +1,6 @@
 package com.portfolio.livecoding.dto;
 
+import com.portfolio.livecoding.enums.Dificuldade;
 import com.portfolio.livecoding.enums.NivelVaga;
 import com.portfolio.livecoding.enums.TipoDesafio;
 
@@ -9,6 +10,7 @@ import com.portfolio.livecoding.enums.TipoDesafio;
 public record DesafioFiltroDTO(
         NivelVaga nivel,
         Long tecnologiaId,
-        TipoDesafio tipo
+        TipoDesafio tipo,
+        Dificuldade dificuldade
 ) {
 }

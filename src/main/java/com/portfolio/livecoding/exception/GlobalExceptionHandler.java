@@ -2,8 +2,10 @@ package com.portfolio.livecoding.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -19,6 +21,7 @@ import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -75,6 +78,24 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleAcessoNegado(AccessDeniedException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(corpo(HttpStatus.FORBIDDEN, "Voce nao tem permissao para acessar este recurso."));
+    }
+
+    /**
+     * Query param que nao converte: ?ordenar=POR_SORTE, ?dificuldade=DIFICILIMO, ?pagina=abc.
+     * E erro de quem chamou, e nao do servidor — 400, e nao 500. Quando o destino e um enum, a
+     * mensagem lista os valores aceitos: esse vocabulario ja e publico na propria API.
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<Map<String, Object>> handleParametroInvalido(@NonNull MethodArgumentTypeMismatchException ex) {
+        Class<?> esperado = ex.getRequiredType();
+        String aceitos = esperado != null && esperado.isEnum()
+                ? " Valores aceitos: " + Arrays.stream(esperado.getEnumConstants())
+                        .map(Object::toString)
+                        .collect(Collectors.joining(", ")) + "."
+                : "";
+
+        return ResponseEntity.badRequest().body(corpo(HttpStatus.BAD_REQUEST,
+                "Valor invalido para o parametro '" + ex.getName() + "'." + aceitos));
     }
 
     /**

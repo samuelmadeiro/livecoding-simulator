@@ -1,5 +1,6 @@
 package com.portfolio.livecoding.entity;
 
+import com.portfolio.livecoding.enums.Dificuldade;
 import com.portfolio.livecoding.enums.NivelVaga;
 import com.portfolio.livecoding.enums.TipoDesafio;
 import jakarta.persistence.Column;
@@ -45,6 +46,14 @@ public class Desafio {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private TipoDesafio tipo;
+
+    /*
+     * Quanto a questao cobra de quem resolve. Coluna propria, e nao derivada do nivel: nivel diz
+     * para qual vaga o desafio serve, dificuldade diz o tamanho do problema.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private Dificuldade dificuldade;
 
     @Column(name = "tempo_limite_minutos", nullable = false)
     private Integer tempoLimiteMinutos;
