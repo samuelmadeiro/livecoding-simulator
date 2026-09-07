@@ -6,6 +6,21 @@ export type NivelVaga = (typeof NIVEIS)[number];
 export const TIPOS = ["API_REST", "ALGORITMO_EASY", "BANCO_DADOS"] as const;
 export type TipoDesafio = (typeof TIPOS)[number];
 
+/* Quanto a questao cobra. Eixo separado do nivel da vaga: nivel diz para qual vaga ela serve. */
+export const DIFICULDADES = ["FACIL", "MEDIO", "DIFICIL"] as const;
+export type Dificuldade = (typeof DIFICULDADES)[number];
+
+/** Ordenacoes que o catalogo aceita. Espelho de OrdemDesafios no backend. */
+export const ORDENS = [
+  "PADRAO",
+  "DIFICULDADE_CRESCENTE",
+  "DIFICULDADE_DECRESCENTE",
+  "TITULO",
+  "TEMPO_CRESCENTE",
+  "TEMPO_DECRESCENTE",
+] as const;
+export type OrdemDesafios = (typeof ORDENS)[number];
+
 export type StatusSubmissao =
   | "PENDENTE"
   | "APROVADO"
@@ -21,6 +36,7 @@ export interface Desafio {
   titulo: string;
   descricao: string;
   nivel: NivelVaga;
+  dificuldade: Dificuldade;
   tipo: TipoDesafio;
   tempoLimiteMinutos: number | null;
   templateCodigo: string | null;
@@ -100,6 +116,31 @@ export interface FiltroDesafios {
   nivel?: NivelVaga;
   tecnologiaId?: number;
   tipo?: TipoDesafio;
+  dificuldade?: Dificuldade;
+}
+
+/** O que a tela do catalogo pede de uma vez: os filtros, a ordem e qual fatia. */
+export interface ConsultaDesafios extends FiltroDesafios {
+  ordenar?: OrdemDesafios;
+  pagina?: number;
+  tamanho?: number;
+}
+
+/** Uma fatia de resultado. Espelho de PaginaDTO: o total conta o filtro inteiro, nao a fatia. */
+export interface Pagina<T> {
+  conteudo: T[];
+  pagina: number;
+  tamanho: number;
+  totalItens: number;
+  totalPaginas: number;
+  primeira: boolean;
+  ultima: boolean;
+}
+
+/** Uma tecnologia do catalogo, como GET /api/tecnologias devolve. */
+export interface Tecnologia {
+  id: number;
+  nome: string;
 }
 
 /* ---------- Painel do admin (GET /api/admin/metricas) ---------- */
@@ -183,6 +224,22 @@ export const ROTULO_NIVEL: Record<NivelVaga, string> = {
   JUNIOR: "Júnior",
   PLENO: "Pleno",
   SENIOR: "Sênior",
+};
+
+export const ROTULO_DIFICULDADE: Record<Dificuldade, string> = {
+  FACIL: "Fácil",
+  MEDIO: "Média",
+  DIFICIL: "Difícil",
+};
+
+/* O rotulo diz o efeito, nao o nome tecnico da constante: quem le quer saber o que muda na tela. */
+export const ROTULO_ORDEM: Record<OrdemDesafios, string> = {
+  PADRAO: "Ordem do catálogo",
+  DIFICULDADE_CRESCENTE: "Da mais fácil para a mais difícil",
+  DIFICULDADE_DECRESCENTE: "Da mais difícil para a mais fácil",
+  TITULO: "Título (A-Z)",
+  TEMPO_CRESCENTE: "Menor tempo primeiro",
+  TEMPO_DECRESCENTE: "Maior tempo primeiro",
 };
 
 export const ROTULO_TIPO: Record<TipoDesafio, string> = {

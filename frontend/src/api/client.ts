@@ -1,11 +1,13 @@
 import type {
   Autenticacao,
+  ConsultaDesafios,
   Desafio,
-  FiltroDesafios,
+  Pagina,
   PainelAdmin,
   Progresso,
   RankingItem,
   Submissao,
+  Tecnologia,
   Tentativa,
 } from "./types";
 
@@ -86,15 +88,32 @@ function mensagemPadrao(status: number): string {
 }
 
 export const api = {
-  listarDesafios(filtro: FiltroDesafios = {}): Promise<Desafio[]> {
+  /**
+   * Uma pagina do catalogo. Parametro ausente = sem filtro; a ordem e o tamanho tem padrao no
+   * backend, entao a URL so carrega o que a pessoa escolheu.
+   */
+  listarDesafios(consulta: ConsultaDesafios = {}): Promise<Pagina<Desafio>> {
     const parametros = new URLSearchParams();
-    if (filtro.nivel) parametros.set("nivel", filtro.nivel);
-    if (filtro.tipo) parametros.set("tipo", filtro.tipo);
-    if (filtro.tecnologiaId != null) {
-      parametros.set("tecnologiaId", String(filtro.tecnologiaId));
+    if (consulta.nivel) parametros.set("nivel", consulta.nivel);
+    if (consulta.tipo) parametros.set("tipo", consulta.tipo);
+    if (consulta.dificuldade) parametros.set("dificuldade", consulta.dificuldade);
+    if (consulta.tecnologiaId != null) {
+      parametros.set("tecnologiaId", String(consulta.tecnologiaId));
     }
-    const consulta = parametros.toString();
-    return requisitar<Desafio[]>(`/api/desafios${consulta ? `?${consulta}` : ""}`);
+    if (consulta.ordenar) parametros.set("ordenar", consulta.ordenar);
+    if (consulta.pagina != null) parametros.set("pagina", String(consulta.pagina));
+    if (consulta.tamanho != null) parametros.set("tamanho", String(consulta.tamanho));
+
+    const query = parametros.toString();
+    return requisitar<Pagina<Desafio>>(`/api/desafios${query ? `?${query}` : ""}`);
+  },
+
+  /**
+   * O vocabulario do filtro de tecnologia. Vem da API, e nao dos desafios que voltaram: com
+   * paginacao, a fatia visivel nao conhece o catalogo inteiro.
+   */
+  listarTecnologias(): Promise<Tecnologia[]> {
+    return requisitar<Tecnologia[]>("/api/tecnologias");
   },
 
   buscarDesafio(id: number): Promise<Desafio> {
