@@ -1,5 +1,6 @@
 package com.portfolio.livecoding.controller;
 
+import com.portfolio.livecoding.dto.DesafioResponseDTO;
 import com.portfolio.livecoding.dto.ProgressoDTO;
 import com.portfolio.livecoding.dto.RankingItemDTO;
 import com.portfolio.livecoding.service.RankingService;
@@ -33,5 +34,18 @@ public class ProgressoController {
     @GetMapping("/progresso")
     public ResponseEntity<ProgressoDTO> progresso(Principal principal) {
         return ResponseEntity.ok(rankingService.progressoDe(principal.getName()));
+    }
+
+    /**
+     * A proxima questao sugerida para quem esta logado.
+     *
+     * <p>204 quando nao ha sugestao — o candidato resolveu o catalogo inteiro. E ausencia de
+     * conteudo, e nao erro, entao nao cabe 404 nem um corpo vazio com 200.
+     */
+    @GetMapping("/progresso/proxima")
+    public ResponseEntity<DesafioResponseDTO> proximaQuestao(Principal principal) {
+        return rankingService.proximaQuestao(principal.getName())
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.noContent().build());
     }
 }
