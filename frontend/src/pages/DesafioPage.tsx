@@ -1,4 +1,4 @@
-import { ArrowLeft, Clock } from "lucide-react";
+import { ArrowDown, ArrowLeft, Clock } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ErroDeApi, api } from "../api/client";
@@ -132,7 +132,7 @@ export function DesafioPage() {
           mensagem={erroCarga}
           acao={
             <Link
-              to="/"
+              to="/desafios"
               className="text-sm text-tinta underline decoration-borda-forte underline-offset-4 hover:decoration-acento"
             >
               Voltar para o catálogo
@@ -157,8 +157,10 @@ export function DesafioPage() {
     <div className="flex flex-col gap-8 px-6 py-12 md:px-12">
       {/* Em <nav> proprio: link solto fora de landmark e invisivel para quem navega por regioes. */}
       <nav aria-label="Trilha">
+        {/* /desafios, e nao /: desde que a landing assumiu a raiz, ela manda quem esta logado para
+            o painel — e "Todos os desafios" levava para o lugar errado. */}
         <Link
-          to="/"
+          to="/desafios"
           className="inline-flex w-fit items-center gap-2 text-sm text-tinta-media underline decoration-borda-forte underline-offset-4 hover:text-tinta hover:decoration-acento"
         >
           <ArrowLeft aria-hidden="true" size={16} />
@@ -179,6 +181,20 @@ export function DesafioPage() {
           <h1 className="text-lg text-tinta">{desafio.titulo}</h1>
 
           <p className="max-w-[var(--medida-texto)] text-tinta-media">{desafio.descricao}</p>
+
+          {/*
+            Só no celular. Ali o enunciado estruturado — contexto, entrada, saída, exemplo e
+            restrições — vem inteiro antes do editor, e quem já leu a questão precisava rolar
+            tudo de novo para voltar a escrever. No desktop os dois ficam lado a lado e o atalho
+            não teria função.
+          */}
+          <a
+            href="#titulo-solucao"
+            className="inline-flex w-fit items-center gap-2 text-sm text-tinta underline decoration-borda-forte underline-offset-4 hover:decoration-acento lg:hidden"
+          >
+            Ir para o editor
+            <ArrowDown aria-hidden="true" size={16} />
+          </a>
 
           {/*
            * As secoes do enunciado. Cada uma so aparece se o desafio tiver aquele campo, porque

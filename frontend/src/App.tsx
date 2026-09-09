@@ -1,4 +1,4 @@
-import { Route, Routes } from "react-router-dom";
+import { Link, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./auth/AuthContext";
 import { RotaAdmin } from "./auth/RotaAdmin";
 import { Cabecalho } from "./components/Cabecalho";
@@ -53,12 +53,14 @@ function NaoEncontrada() {
       <p className="max-w-[var(--medida-texto)] text-tinta-media">
         O endereço que você abriu não existe nesta aplicação.
       </p>
-      <a
-        href="/"
+      {/* Link do router, e nao <a>: recarregar a aplicacao inteira para trocar de rota derruba a
+          sessao em memoria e pisca a tela a toa. */}
+      <Link
+        to="/desafios"
         className="w-fit text-tinta underline decoration-borda-forte underline-offset-4 hover:decoration-acento"
       >
         Voltar para o catálogo
-      </a>
+      </Link>
     </main>
   );
 }
