@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { ArrowRight, Trophy } from "lucide-react";
 import { api, ErroDeApi } from "../api/client";
-import { ROTULO_NIVEL, type Progresso, type RankingItem } from "../api/types";
+import { ROTULO_NIVEL, type Desafio, type Progresso, type RankingItem } from "../api/types";
 import { useAuth } from "../auth/useAuth";
 import { CartaoSequencia } from "../components/CartaoSequencia";
 import { Carregando, Falha } from "../components/Estados";
@@ -20,6 +20,7 @@ export function PainelPage() {
   const token = sessao?.token;
   const [progresso, setProgresso] = useState<Progresso | null>(null);
   const [ranking, setRanking] = useState<RankingItem[]>([]);
+  const [proxima, setProxima] = useState<Desafio | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(true);
 
@@ -29,11 +30,17 @@ export function PainelPage() {
     let ativo = true;
     setCarregando(true);
 
-    Promise.all([api.buscarProgresso(token), api.buscarRanking()])
-      .then(([meuProgresso, listaRanking]) => {
+    Promise.all([
+      api.buscarProgresso(token),
+      api.buscarRanking(),
+      /* A sugestão é um extra: se falhar, o painel continua servindo com o link do catálogo. */
+      api.buscarProximaQuestao(token).catch(() => null),
+    ])
+      .then(([meuProgresso, listaRanking, sugestao]) => {
         if (!ativo) return;
         setProgresso(meuProgresso);
         setRanking(listaRanking);
+        setProxima(sugestao);
         setErro(null);
       })
       .catch((falha: unknown) => {
@@ -119,13 +126,49 @@ export function PainelPage() {
             </div>
           </dl>
 
-          <Link
-            to="/desafios"
-            className="inline-flex min-h-11 w-fit items-center gap-2 rounded-padrao border border-acento bg-acento px-5 py-2 font-medium text-tinta-invertida hover:bg-acento-escuro"
-          >
-            {progresso.questoesResolvidas === 0 ? "Resolver a primeira questão" : "Praticar agora"}
-            <ArrowRight aria-hidden="true" size={18} />
-          </Link>
+          {/*
+            Uma questão concreta em vez de "praticar agora". A decisão de qual questão fazer é o
+            atrito que faz a pessoa fechar a aba; o painel já sabe o nível que ela pratica e o que
+            ela ainda não resolveu, então escolhe por ela — e o link do catálogo continua ali para
+            quem quer escolher.
+          */}
+          {proxima ? (
+            <div className="flex flex-col gap-3 border-t border-borda pt-4">
+              <p className="text-xs text-tinta-fraca">Sugestão de hoje</p>
+              <p className="text-md text-tinta">{proxima.titulo}</p>
+              <p className="text-sm text-tinta-fraca">
+                {proxima.tecnologiaNome} · {ROTULO_NIVEL[proxima.nivel]}
+                {proxima.tempoLimiteMinutos != null
+                  ? ` · cerca de ${proxima.tempoLimiteMinutos} min`
+                  : ""}
+              </p>
+
+              <div className="flex flex-wrap items-center gap-4">
+                <Link
+                  to={`/desafios/${proxima.id}`}
+                  className="inline-flex min-h-11 w-fit items-center gap-2 rounded-padrao border border-acento bg-acento px-5 py-2 font-medium text-tinta-invertida hover:bg-acento-escuro"
+                >
+                  {progresso.questoesResolvidas === 0 ? "Resolver esta questão" : "Continuar por aqui"}
+                  <ArrowRight aria-hidden="true" size={18} />
+                </Link>
+
+                <Link
+                  to="/desafios"
+                  className="text-sm text-tinta underline decoration-borda-forte underline-offset-4 hover:decoration-acento"
+                >
+                  Escolher outra
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <Link
+              to="/desafios"
+              className="inline-flex min-h-11 w-fit items-center gap-2 rounded-padrao border border-acento bg-acento px-5 py-2 font-medium text-tinta-invertida hover:bg-acento-escuro"
+            >
+              {progresso.questoesResolvidas === 0 ? "Resolver a primeira questão" : "Praticar agora"}
+              <ArrowRight aria-hidden="true" size={18} />
+            </Link>
+          )}
 
           {restantes > 0 && (
             <p className="text-sm text-tinta-fraca">
