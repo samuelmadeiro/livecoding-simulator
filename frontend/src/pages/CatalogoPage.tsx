@@ -9,7 +9,6 @@ import {
   TIPOS,
   type ConsultaDesafios,
   type Desafio,
-  type FiltroDesafios,
   type OrdemDesafios,
   type Pagina,
   type Tecnologia,
@@ -18,6 +17,7 @@ import { DesafioCard } from "../components/DesafioCard";
 import { Carregando, Falha, Vazio } from "../components/Estados";
 import { FiltroTrilho } from "../components/FiltroTrilho";
 import { Paginacao } from "../components/Paginacao";
+import { useAuth } from "../auth/useAuth";
 
 export function CatalogoPage() {
   /*
@@ -32,6 +32,16 @@ export function CatalogoPage() {
   const [resultado, setResultado] = useState<Pagina<Desafio> | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [tecnologias, setTecnologias] = useState<Tecnologia[]>([]);
+  /*
+   * "Estou buscando" e "tenho dados" sao coisas separadas. Antes o resultado era zerado a cada
+   * consulta, e a lista inteira sumia entre um filtro e outro: a pagina encolhia, o scroll pulava
+   * e o contexto se perdia a cada clique. Agora a lista anterior fica na tela, esmaecida, ate a
+   * nova chegar.
+   */
+  const [carregando, setCarregando] = useState(true);
+
+  const { sessao, autenticado } = useAuth();
+  const token = sessao?.token ?? null;
 
   /*
    * O vocabulario do filtro vem de /api/tecnologias, e nao dos desafios que voltaram: a pagina
@@ -57,11 +67,11 @@ export function CatalogoPage() {
 
   useEffect(() => {
     let cancelado = false;
-    setResultado(null);
+    setCarregando(true);
     setErro(null);
 
     api
-      .listarDesafios(consulta)
+      .listarDesafios(consulta, token)
       .then((pagina) => {
         if (cancelado) return;
         setResultado(pagina);
@@ -69,12 +79,15 @@ export function CatalogoPage() {
       .catch((causa: unknown) => {
         if (cancelado) return;
         setErro(causa instanceof ErroDeApi ? causa.message : "Falha ao carregar os desafios.");
+      })
+      .finally(() => {
+        if (!cancelado) setCarregando(false);
       });
 
     return () => {
       cancelado = true;
     };
-  }, [consulta]);
+  }, [consulta, token]);
 
   const navegar = useCallback(
     (nova: ConsultaDesafios) => setParametros(escrever(nova)),
@@ -84,7 +97,7 @@ export function CatalogoPage() {
   /* Filtro ou ordem nova recomeca na primeira pagina: a pagina 7 do recorte antigo pode nem
    * existir no novo, e cair numa lista vazia depois de clicar num filtro parece defeito. */
   const aplicarFiltro = useCallback(
-    (filtro: FiltroDesafios) => navegar({ ...filtro, ordenar: consulta.ordenar, pagina: 0 }),
+    (filtro: ConsultaDesafios) => navegar({ ...filtro, ordenar: consulta.ordenar, pagina: 0 }),
     [navegar, consulta.ordenar],
   );
 
@@ -135,7 +148,12 @@ export function CatalogoPage() {
 
       {/* Layout assimetrico: trilho estreito de filtros a esquerda, lista ocupando o resto. */}
       <div className="grid gap-12 lg:grid-cols-[16rem_minmax(0,1fr)]">
-        <FiltroTrilho filtro={consulta} tecnologias={tecnologias} onMudar={aplicarFiltro} />
+        <FiltroTrilho
+          filtro={consulta}
+          tecnologias={tecnologias}
+          onMudar={aplicarFiltro}
+          mostrarPendentes={autenticado}
+        />
 
         <section aria-label="Resultados" className="flex flex-col gap-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
@@ -164,17 +182,25 @@ export function CatalogoPage() {
 
           {erro ? <Falha mensagem={erro} /> : null}
 
-          {!erro && resultado == null ? <Carregando rotulo="Buscando desafios" /> : null}
+          {/* Só na primeira carga, quando não há lista anterior para segurar a tela. */}
+          {!erro && resultado == null && carregando ? (
+            <Carregando rotulo="Buscando desafios" />
+          ) : null}
 
-          {!erro && resultado != null && resultado.totalItens === 0 ? (
+          {!erro && !carregando && resultado != null && resultado.totalItens === 0 ? (
             <Vazio titulo="Nenhum desafio com esses filtros">
-              Tente afrouxar um dos filtros — nem toda combinação de nível, dificuldade e
-              tecnologia existe no catálogo.
+              {consulta.naoResolvidas
+                ? "Você já resolveu tudo que combina com esses filtros. Desmarque “só as que faltam” para revê-las."
+                : "Tente afrouxar um dos filtros — nem toda combinação de nível, dificuldade e tecnologia existe no catálogo."}
             </Vazio>
           ) : null}
 
           {resultado != null && resultado.conteudo.length > 0 ? (
-            <>
+            <div
+              aria-busy={carregando}
+              /* Esmaecer sinaliza "isto ainda é o resultado antigo" sem tirar nada da tela. */
+              className={`flex flex-col gap-6 transition-opacity ${carregando ? "opacity-50" : ""}`}
+            >
               <ul className="flex flex-col gap-6">
                 {resultado.conteudo.map((desafio) => (
                   <li key={desafio.id}>
@@ -188,7 +214,7 @@ export function CatalogoPage() {
                 totalPaginas={resultado.totalPaginas}
                 onIr={irParaPagina}
               />
-            </>
+            </div>
           ) : null}
         </section>
       </div>
@@ -208,6 +234,7 @@ function lerConsulta(parametros: URLSearchParams): ConsultaDesafios {
     tipo: umDe(TIPOS, parametros.get("tipo")),
     dificuldade: umDe(DIFICULDADES, parametros.get("dificuldade")),
     tecnologiaId: inteiroPositivo(parametros.get("tecnologiaId")),
+    naoResolvidas: parametros.get("naoResolvidas") === "true",
     ordenar: umDe(ORDENS, parametros.get("ordenar")) ?? "PADRAO",
     pagina: Number.isInteger(pagina) && pagina > 0 ? pagina : 0,
   };
@@ -223,6 +250,7 @@ function escrever(consulta: ConsultaDesafios): URLSearchParams {
   if (consulta.tecnologiaId != null) {
     parametros.set("tecnologiaId", String(consulta.tecnologiaId));
   }
+  if (consulta.naoResolvidas) parametros.set("naoResolvidas", "true");
   if (consulta.ordenar && consulta.ordenar !== "PADRAO") {
     parametros.set("ordenar", consulta.ordenar);
   }

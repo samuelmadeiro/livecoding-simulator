@@ -48,6 +48,11 @@ export interface Desafio {
   restricoes: string | null;
   tecnologiaId: number | null;
   tecnologiaNome: string | null;
+  /**
+   * Se você já conquistou esta questão. Nulo para visitante anônimo — "ainda não resolvi" e "não
+   * sei quem você é" são respostas diferentes, e só a primeira merece selo na tela.
+   */
+  resolvido: boolean | null;
 }
 
 export interface Autenticacao {
@@ -124,6 +129,8 @@ export interface ConsultaDesafios extends FiltroDesafios {
   ordenar?: OrdemDesafios;
   pagina?: number;
   tamanho?: number;
+  /** Só as questões que ainda faltam. Ignorado pelo servidor para quem não entrou. */
+  naoResolvidas?: boolean;
 }
 
 /** Uma fatia de resultado. Espelho de PaginaDTO: o total conta o filtro inteiro, nao a fatia. */

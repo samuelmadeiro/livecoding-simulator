@@ -92,8 +92,13 @@ export const api = {
    * Uma pagina do catalogo. Parametro ausente = sem filtro; a ordem e o tamanho tem padrao no
    * backend, entao a URL so carrega o que a pessoa escolheu.
    */
-  listarDesafios(consulta: ConsultaDesafios = {}): Promise<Pagina<Desafio>> {
+  /**
+   * O token é opcional: o catálogo é público. Quando vem, a resposta marca o que já foi resolvido
+   * e o recorte de pendentes passa a valer — sem ele, o servidor devolve o catálogo inteiro.
+   */
+  listarDesafios(consulta: ConsultaDesafios = {}, token?: string | null): Promise<Pagina<Desafio>> {
     const parametros = new URLSearchParams();
+    if (consulta.naoResolvidas) parametros.set("naoResolvidas", "true");
     if (consulta.nivel) parametros.set("nivel", consulta.nivel);
     if (consulta.tipo) parametros.set("tipo", consulta.tipo);
     if (consulta.dificuldade) parametros.set("dificuldade", consulta.dificuldade);
@@ -105,7 +110,7 @@ export const api = {
     if (consulta.tamanho != null) parametros.set("tamanho", String(consulta.tamanho));
 
     const query = parametros.toString();
-    return requisitar<Pagina<Desafio>>(`/api/desafios${query ? `?${query}` : ""}`);
+    return requisitar<Pagina<Desafio>>(`/api/desafios${query ? `?${query}` : ""}`, {}, token);
   },
 
   /**
@@ -174,5 +179,15 @@ export const api = {
 
   buscarProgresso(token: string): Promise<Progresso> {
     return requisitar<Progresso>("/api/progresso", {}, token);
+  },
+
+  /**
+   * A próxima questão sugerida. Devolve null quando o servidor responde 204 — não há sugestão
+   * porque a pessoa resolveu tudo, e isso não é erro.
+   */
+  buscarProximaQuestao(token: string): Promise<Desafio | null> {
+    return requisitar<Desafio | undefined>("/api/progresso/proxima", {}, token).then(
+      (desafio) => desafio ?? null,
+    );
   },
 };
