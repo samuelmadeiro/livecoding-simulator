@@ -2,6 +2,7 @@ package com.portfolio.livecoding.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -59,7 +60,9 @@ class DesafioControllerTest {
             "GET /produtos -> [{\"id\":1,\"nome\":\"Teclado\"}]",
             "Sem paginacao nesta versao.",
             1L,
-            "Java");
+            "Java",
+            // Visitante anonimo: o catalogo nao sabe se a questao foi resolvida.
+            null);
 
     private static final PaginaDTO<DesafioResponseDTO> PAGINA =
             new PaginaDTO<>(List.of(DESAFIO), 0, 9, 14, 2, true, false);
@@ -67,7 +70,7 @@ class DesafioControllerTest {
     @Test
     @DisplayName("GET /api/desafios retorna 200, a pagina e os metadados dela")
     void listar() throws Exception {
-        when(desafioService.listar(any(), any(), anyInt(), anyInt())).thenReturn(PAGINA);
+        when(desafioService.listar(any(), any(), anyInt(), anyInt(), any(), anyBoolean())).thenReturn(PAGINA);
 
         mockMvc.perform(get("/api/desafios"))
                 .andExpect(status().isOk())
@@ -83,17 +86,17 @@ class DesafioControllerTest {
     @Test
     @DisplayName("sem query params vale a ordem padrao, primeira pagina e o tamanho padrao")
     void listarUsaOsPadroes() throws Exception {
-        when(desafioService.listar(any(), any(), anyInt(), anyInt())).thenReturn(PAGINA);
+        when(desafioService.listar(any(), any(), anyInt(), anyInt(), any(), anyBoolean())).thenReturn(PAGINA);
 
         mockMvc.perform(get("/api/desafios")).andExpect(status().isOk());
 
-        verify(desafioService).listar(any(), eq(OrdemDesafios.PADRAO), eq(0), eq(9));
+        verify(desafioService).listar(any(), eq(OrdemDesafios.PADRAO), eq(0), eq(9), any(), eq(false));
     }
 
     @Test
     @DisplayName("GET /api/desafios com query params monta o DesafioFiltroDTO")
     void listarComFiltros() throws Exception {
-        when(desafioService.listar(any(), any(), anyInt(), anyInt())).thenReturn(PAGINA);
+        when(desafioService.listar(any(), any(), anyInt(), anyInt(), any(), anyBoolean())).thenReturn(PAGINA);
 
         mockMvc.perform(get("/api/desafios")
                         .param("nivel", "JUNIOR")
@@ -103,7 +106,7 @@ class DesafioControllerTest {
                 .andExpect(status().isOk());
 
         ArgumentCaptor<DesafioFiltroDTO> captor = ArgumentCaptor.forClass(DesafioFiltroDTO.class);
-        verify(desafioService).listar(captor.capture(), any(), anyInt(), anyInt());
+        verify(desafioService).listar(captor.capture(), any(), anyInt(), anyInt(), any(), anyBoolean());
         DesafioFiltroDTO filtro = captor.getValue();
 
         assertThat(filtro.nivel()).isEqualTo(NivelVaga.JUNIOR);
@@ -115,7 +118,7 @@ class DesafioControllerTest {
     @Test
     @DisplayName("ordenar, pagina e tamanho chegam ao service como foram pedidos")
     void listarComOrdenacaoEPaginacao() throws Exception {
-        when(desafioService.listar(any(), any(), anyInt(), anyInt())).thenReturn(PAGINA);
+        when(desafioService.listar(any(), any(), anyInt(), anyInt(), any(), anyBoolean())).thenReturn(PAGINA);
 
         mockMvc.perform(get("/api/desafios")
                         .param("ordenar", "DIFICULDADE_DECRESCENTE")
@@ -123,7 +126,7 @@ class DesafioControllerTest {
                         .param("tamanho", "5"))
                 .andExpect(status().isOk());
 
-        verify(desafioService).listar(any(), eq(OrdemDesafios.DIFICULDADE_DECRESCENTE), eq(2), eq(5));
+        verify(desafioService).listar(any(), eq(OrdemDesafios.DIFICULDADE_DECRESCENTE), eq(2), eq(5), any(), anyBoolean());
     }
 
     @Test

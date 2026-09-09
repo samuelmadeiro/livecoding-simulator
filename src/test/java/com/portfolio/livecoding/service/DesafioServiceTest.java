@@ -3,6 +3,7 @@ package com.portfolio.livecoding.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -16,7 +17,10 @@ import com.portfolio.livecoding.enums.NivelVaga;
 import com.portfolio.livecoding.enums.OrdemDesafios;
 import com.portfolio.livecoding.enums.TipoDesafio;
 import com.portfolio.livecoding.exception.RecursoNaoEncontradoException;
+import com.portfolio.livecoding.entity.Usuario;
+import com.portfolio.livecoding.repository.ConquistaRepository;
 import com.portfolio.livecoding.repository.DesafioRepository;
+import com.portfolio.livecoding.repository.UsuarioRepository;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,6 +41,12 @@ class DesafioServiceTest {
 
     @Mock
     private DesafioRepository desafioRepository;
+
+    @Mock
+    private ConquistaRepository conquistaRepository;
+
+    @Mock
+    private UsuarioRepository usuarioRepository;
 
     @InjectMocks
     private DesafioService desafioService;
@@ -83,6 +93,54 @@ class DesafioServiceTest {
         assertThat(pagina.totalItens()).isEqualTo(1);
         assertThat(pagina.primeira()).isTrue();
         assertThat(pagina.ultima()).isTrue();
+    }
+
+    @Test
+    @DisplayName("sem candidato conhecido, resolvido sai nulo em vez de false")
+    void visitanteAnonimoNaoRecebeMarcaDeResolvido() {
+        repositorioDevolveUmDesafio(0, 9, 1);
+
+        PaginaDTO<DesafioResponseDTO> pagina =
+                desafioService.listar(SEM_FILTRO, OrdemDesafios.PADRAO, 0, 9, null, false);
+
+        // Nulo, e nao false: "ainda nao resolvi" e "nao sei quem voce e" sao respostas diferentes.
+        assertThat(pagina.conteudo().getFirst().resolvido()).isNull();
+        verify(conquistaRepository, never()).idsConquistadosEntre(any(), any());
+    }
+
+    @Test
+    @DisplayName("com candidato, marca as questoes ja conquistadas numa consulta so")
+    void marcaResolvidasDoCandidato() {
+        Usuario candidato = new Usuario();
+        candidato.setId(7L);
+        when(usuarioRepository.findByEmail("ana@exemplo.com")).thenReturn(Optional.of(candidato));
+        repositorioDevolveUmDesafio(0, 9, 1);
+        when(conquistaRepository.idsConquistadosEntre(7L, List.of(10L))).thenReturn(List.of(10L));
+
+        PaginaDTO<DesafioResponseDTO> pagina =
+                desafioService.listar(SEM_FILTRO, OrdemDesafios.PADRAO, 0, 9, "ana@exemplo.com", false);
+
+        assertThat(pagina.conteudo().getFirst().resolvido()).isTrue();
+        // Uma consulta para a pagina inteira, e nao uma por card.
+        verify(conquistaRepository).idsConquistadosEntre(7L, List.of(10L));
+    }
+
+    @Test
+    @DisplayName("pedir so as pendentes sem estar logado devolve o catalogo inteiro, sem erro")
+    void recorteDePendentesExigeCandidato() {
+        repositorioDevolveUmDesafio(0, 9, 255);
+
+        PaginaDTO<DesafioResponseDTO> pagina =
+                desafioService.listar(SEM_FILTRO, OrdemDesafios.PADRAO, 0, 9, null, true);
+
+        /*
+         * Sem candidato, o recorte e ignorado em vez de virar erro: quem nao entrou nao pediu nada
+         * invalido, apenas nao ha a quem a pergunta "ja resolvi isto?" se refira. O total continua
+         * sendo o do catalogo, e nenhuma conquista e consultada.
+         */
+        assertThat(pagina.totalItens()).isEqualTo(255);
+        assertThat(pagina.conteudo().getFirst().resolvido()).isNull();
+        verify(conquistaRepository, never()).idsConquistadosEntre(any(), any());
     }
 
     @Test

@@ -46,12 +46,22 @@ public class DesafioController {
             @RequestParam(required = false) Long tecnologiaId,
             @RequestParam(required = false) TipoDesafio tipo,
             @RequestParam(required = false) Dificuldade dificuldade,
+            @RequestParam(defaultValue = "false") boolean naoResolvidas,
             @RequestParam(defaultValue = "PADRAO") OrdemDesafios ordenar,
             @RequestParam(defaultValue = "0") int pagina,
-            @RequestParam(defaultValue = "9") int tamanho) {
+            @RequestParam(defaultValue = "9") int tamanho,
+            @AuthenticationPrincipal UserDetails usuarioAutenticado) {
+
+        /*
+         * Este GET e permitAll, entao o principal chega nulo para visitante — sem tratar isso, a
+         * home publica quebraria com NullPointerException. Quem traduz e-mail em id e o service:
+         * controller nao fala com repositorio.
+         */
+        String email = usuarioAutenticado == null ? null : usuarioAutenticado.getUsername();
 
         DesafioFiltroDTO filtro = new DesafioFiltroDTO(nivel, tecnologiaId, tipo, dificuldade);
-        return ResponseEntity.ok(desafioService.listar(filtro, ordenar, pagina, tamanho));
+        return ResponseEntity.ok(
+                desafioService.listar(filtro, ordenar, pagina, tamanho, email, naoResolvidas));
     }
 
     @GetMapping("/{id}")

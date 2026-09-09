@@ -1,15 +1,18 @@
 package com.portfolio.livecoding.repository.especificacao;
 
 import com.portfolio.livecoding.dto.DesafioFiltroDTO;
+import com.portfolio.livecoding.entity.Conquista;
 import com.portfolio.livecoding.entity.Desafio;
 import com.portfolio.livecoding.enums.Dificuldade;
 import com.portfolio.livecoding.enums.OrdemDesafios;
 import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Order;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Subquery;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.data.jpa.domain.Specification;
@@ -52,8 +55,37 @@ public final class DesafioEspecificacao {
                 // Sem join: a chave estrangeira ja esta na propria linha do desafio.
                 condicoes.add(construtor.equal(raiz.get("tecnologia").get("id"), filtro.tecnologiaId()));
             }
+            if (filtro.naoResolvidasPor() != null) {
+                condicoes.add(construtor.not(jaConquistada(raiz, consulta, construtor, filtro.naoResolvidasPor())));
+            }
             return construtor.and(condicoes.toArray(Predicate[]::new));
         };
+    }
+
+    /**
+     * "Existe conquista deste candidato para este desafio?" como subconsulta.
+     *
+     * <p>Fica no mesmo lugar dos demais filtros, e nao numa etapa posterior em memoria, porque o
+     * catalogo e paginado: filtrar depois de paginar entregaria seis itens numa pagina de nove e um
+     * total que nao bate com a lista.
+     *
+     * <p>Entra tambem na passagem de COUNT — o bloco acima so pula fetch e ordenacao, nao os
+     * predicados —, entao o total e a lista contam a mesma coisa.
+     */
+    private static Predicate jaConquistada(Root<Desafio> raiz,
+                                           CriteriaQuery<?> consulta,
+                                           CriteriaBuilder construtor,
+                                           Long usuarioId) {
+
+        Subquery<Long> subconsulta = consulta.subquery(Long.class);
+        Root<Conquista> conquista = subconsulta.from(Conquista.class);
+
+        subconsulta.select(construtor.literal(1L))
+                .where(construtor.and(
+                        construtor.equal(conquista.get("desafio"), raiz),
+                        construtor.equal(conquista.get("usuario").get("id"), usuarioId)));
+
+        return construtor.exists(subconsulta);
     }
 
     /**

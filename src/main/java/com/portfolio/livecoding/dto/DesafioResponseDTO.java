@@ -5,6 +5,11 @@ import com.portfolio.livecoding.enums.Dificuldade;
 import com.portfolio.livecoding.enums.NivelVaga;
 import com.portfolio.livecoding.enums.TipoDesafio;
 
+/**
+ * @param resolvido se o candidato ja conquistou esta questao. <b>Nulo</b> para visitante anonimo,
+ *                  e nao false: "ainda nao resolvi" e "nao sei quem voce e" sao respostas
+ *                  diferentes, e o front usa a distincao para nao mostrar selo a quem nao entrou.
+ */
 public record DesafioResponseDTO(
         Long id,
         String titulo,
@@ -20,10 +25,16 @@ public record DesafioResponseDTO(
         String exemplo,
         String restricoes,
         Long tecnologiaId,
-        String tecnologiaNome
+        String tecnologiaNome,
+        Boolean resolvido
 ) {
 
+    /** Sem candidato conhecido: o campo resolvido sai nulo. */
     public static DesafioResponseDTO fromEntity(Desafio desafio) {
+        return fromEntity(desafio, null);
+    }
+
+    public static DesafioResponseDTO fromEntity(Desafio desafio, Boolean resolvido) {
         return new DesafioResponseDTO(
                 desafio.getId(),
                 desafio.getTitulo(),
@@ -39,7 +50,8 @@ public record DesafioResponseDTO(
                 desafio.getExemplo(),
                 desafio.getRestricoes(),
                 desafio.getTecnologia().getId(),
-                desafio.getTecnologia().getNome()
+                desafio.getTecnologia().getNome(),
+                resolvido
         );
     }
 }
